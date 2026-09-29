@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "JejaKampus",
+    "slug": "jejak-kampus-umm",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D1117"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.umm.jejak-kampus",
+      "infoPlist": {
+        "NSCameraUsageDescription": "JejaKampus perlu akses kamera untuk mengambil foto barang.",
+        "NSPhotoLibraryUsageDescription": "JejaKampus perlu akses galeri untuk mengunggah foto barang.",
+        "NSLocationWhenInUseUsageDescription": "JejaKampus perlu akses lokasi untuk menampilkan peta terdekat."
+      },
+      "config": {
+        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0D1117"
+      },
+      "package": "com.umm.jejakkampus",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "JejaKampus perlu akses galeri foto untuk mengunggah foto barang hilang/ditemukan.",
+          "cameraPermission": "JejaKampus perlu kamera untuk mengambil foto barang."
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "JejaKampus perlu lokasi Anda untuk menampilkan titik barang terdekat."
+        }
+      ],
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
