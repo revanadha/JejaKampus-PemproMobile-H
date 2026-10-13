@@ -4,8 +4,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 import dayjs from 'dayjs';
@@ -21,22 +20,24 @@ export default function ChatsListScreen({ navigation }) {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, 'chats'),
-      where('participants', 'array-contains', user.uid),
-      orderBy('lastMessageTime', 'desc')
-    );
-    const unsub = onSnapshot(q, snap => {
-      setChats(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
+    const loadChats = async () => {
+      try {
+        const { data, error } = await dbHelpers.getChats(user.uid);
+        if (error) throw error;
+        setChats(data || []);
+        setLoading(false);
+      } catch (e) {
+        console.error('Error loading chats:', e);
+        setLoading(false);
+      }
+    };
+    loadChats();
   }, [user]);
 
   const renderChat = ({ item }) => {
-    const otherUserId = item.participants.find(p => p !== user.uid);
-    const otherUserName = item.participantNames?.[otherUserId] || 'Pengguna';
-    const lastTime = item.lastMessageTime?.toDate ? dayjs(item.lastMessageTime.toDate()).fromNow() : '';
+    const otherUserId = item.user1_id === user.uid ? item.user2_id : item.user1_id;
+    const otherUserName = item.user2_name && item.user1_id === user.uid ? item.user2_name : item.user1_name || 'Pengguna';
+    const lastTime = item.updated_at ? dayjs(item.updated_at).fromNow() : '';
 
     return (
       <TouchableOpacity
@@ -51,16 +52,16 @@ export default function ChatsListScreen({ navigation }) {
         <View style={styles.avatar}>
           <Ionicons name="person" size={22} color={COLORS.textSecondary} />
         </View>
-        <View style={styles.chatInfo}>
-          <View style={styles.chatTop}>
-            <Text style={styles.chatName}>{otherUserName}</Text>
-            <Text style={styles.chatTime}>{lastTime}</Text>
-          </View>
-          <Text style={styles.reportTitle} numberOfLines={1}>Re: {item.reportTitle}</Text>
-          <Text style={styles.lastMessage} numberOfLines={1}>
-            {item.lastMessage || 'Belum ada pesan'}
-          </Text>
-        </View>
+         <View style={styles.chatInfo}>
+           <View style={styles.chatTop}>
+             <Text style={styles.chatName}>{otherUserName}</Text>
+             <Text style={styles.chatTime}>{lastTime}</Text>
+           </View>
+           <Text style={styles.reportTitle} numberOfLines={1}>Re: {item.report_title}</Text>
+           <Text style={styles.lastMessage} numberOfLines={1}>
+             {item.last_message || 'Belum ada pesan'}
+           </Text>
+         </View>
         <Ionicons name="chevron-forward" size={16} color={COLORS.textMuted} />
       </TouchableOpacity>
     );

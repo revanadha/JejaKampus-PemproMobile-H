@@ -5,10 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  doc, getDoc, updateDoc, arrayUnion, serverTimestamp, addDoc, collection,
-} from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } from '../../constants/theme';
 import dayjs from 'dayjs';
@@ -31,9 +28,9 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const fetchReport = async () => {
     try {
-      const docRef = doc(db, 'reports', reportId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) setReport({ id: docSnap.id, ...docSnap.data() });
+      const { data, error } = await dbHelpers.getReport(reportId);
+      if (error) throw error;
+      if (data) setReport(data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -42,32 +39,26 @@ export default function ReportDetailScreen({ route, navigation }) {
     if (!claimAnswer.trim()) { Alert.alert('Jawaban diperlukan'); return; }
     setClaimLoading(true);
     try {
-      const isCorrect = claimAnswer.trim().toLowerCase() === report.verificationAnswer;
+      const isCorrect = claimAnswer.trim().toLowerCase() === report.verification_answer;
       if (!isCorrect) {
         Alert.alert('Jawaban Salah ❌', 'Jawaban verifikasi tidak sesuai. Coba lagi.');
         setClaimLoading(false);
         return;
       }
       // Create chat room & notify
-      const chatRef = await addDoc(collection(db, 'chats'), {
-        reportId,
-        reportTitle: report.title,
-        participants: [user.uid, report.authorId],
-        participantNames: {
-          [user.uid]: userProfile?.displayName || 'Anonim',
-          [report.authorId]: report.authorName,
-        },
-        createdAt: serverTimestamp(),
-        lastMessage: '',
-        lastMessageTime: serverTimestamp(),
-      });
-      await updateDoc(doc(db, 'reports', reportId), {
-        claimRequests: arrayUnion({ userId: user.uid, userName: userProfile?.displayName, chatId: chatRef.id, timestamp: new Date().toISOString() }),
+      const { data: chatData, error: chatError } = await dbHelpers.getOrCreateChat(user.uid, report.author_id);
+      if (chatError) throw chatError;
+      const chatRef = chatData;
+      
+      const { error: updateError } = await dbHelpers.updateReport(reportId, {
+        claim_requests: [...(report.claim_requests || []), { user_id: user.uid, user_name: userProfile?.display_name, chat_id: chatRef.id, timestamp: new Date().toISOString() }],
         status: 'claimed',
       });
+      if (updateError) throw updateError;
+      
       setShowClaimModal(false);
       Alert.alert('Berhasil! ✅', 'Verifikasi berhasil. Anda bisa mulai chat dengan penemu.', [
-        { text: 'Buka Chat', onPress: () => navigation.navigate('Chat', { chatId: chatRef.id, reportTitle: report.title, otherUserId: report.authorId, otherUserName: report.authorName }) }
+        { text: 'Buka Chat', onPress: () => navigation.navigate('Chat', { chatId: chatRef.id, reportTitle: report.title, otherUserId: report.author_id, otherUserName: report.author_name }) }
       ]);
     } catch (e) { Alert.alert('Error', e.message); }
     finally { setClaimLoading(false); }
@@ -75,13 +66,13 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const openChat = async () => {
     // For report owner: find existing chat or create new
-    const existingClaim = report.claimRequests?.[0];
-    if (existingClaim?.chatId) {
+    const existingClaim = report.claim_requests?.[0];
+    if (existingClaim?.chat_id) {
       navigation.navigate('Chat', {
-        chatId: existingClaim.chatId,
+        chatId: existingClaim.chat_id,
         reportTitle: report.title,
-        otherUserId: existingClaim.userId,
-        otherUserName: existingClaim.userName,
+        otherUserId: existingClaim.user_id,
+        otherUserName: existingClaim.user_name,
       });
     }
   };
@@ -90,10 +81,10 @@ export default function ReportDetailScreen({ route, navigation }) {
   if (!report) return <View style={styles.center}><Text style={styles.errorText}>Laporan tidak ditemukan</Text></View>;
 
   const category = CATEGORIES.find(c => c.id === report.category);
-  const location = CAMPUS_LOCATIONS.find(l => l.id === report.locationId);
-  const dropOffLocation = CAMPUS_LOCATIONS.find(l => l.id === report.dropOffLocationId);
-  const isOwner = user?.uid === report.authorId;
-  const isClaimed = report.claimRequests?.some(c => c.userId === user?.uid);
+  const location = CAMPUS_LOCATIONS.find(l => l.id === report.location_id);
+  const dropOffLocation = CAMPUS_LOCATIONS.find(l => l.id === report.drop_off_location_id);
+  const isOwner = user?.uid === report.author_id;
+  const isClaimed = report.claim_requests?.some(c => c.user_id === user?.uid);
 
   return (
     <View style={styles.container}>
@@ -138,14 +129,14 @@ export default function ReportDetailScreen({ route, navigation }) {
             </View>
           </View>
 
-          {/* Meta info */}
-          <View style={styles.metaGrid}>
-            <MetaItem icon="location-outline" label="Lokasi" value={location?.name || report.locationName || '-'} color={COLORS.primary} />
-            <MetaItem icon={category?.icon || 'help-outline'} label="Kategori" value={category?.name || '-'} color={category?.color || COLORS.textSecondary} />
-            {report.color && <MetaItem icon="color-palette-outline" label="Warna" value={report.color} color={COLORS.accent} />}
-            {report.brand && <MetaItem icon="pricetag-outline" label="Merek" value={report.brand} color={COLORS.accent} />}
-            <MetaItem icon="time-outline" label="Dilaporkan" value={report.createdAt ? dayjs(report.createdAt.toDate()).format('D MMM YYYY, HH:mm') : '-'} color={COLORS.textSecondary} />
-          </View>
+           {/* Meta info */}
+           <View style={styles.metaGrid}>
+             <MetaItem icon="location-outline" label="Lokasi" value={location?.name || report.location_name || '-'} color={COLORS.primary} />
+             <MetaItem icon={category?.icon || 'help-outline'} label="Kategori" value={category?.name || '-'} color={category?.color || COLORS.textSecondary} />
+             {report.color && <MetaItem icon="color-palette-outline" label="Warna" value={report.color} color={COLORS.accent} />}
+             {report.brand && <MetaItem icon="pricetag-outline" label="Merek" value={report.brand} color={COLORS.accent} />}
+             <MetaItem icon="time-outline" label="Dilaporkan" value={report.created_at ? dayjs(report.created_at).format('D MMM YYYY, HH:mm') : '-'} color={COLORS.textSecondary} />
+           </View>
 
           {/* Description */}
           {report.description ? (
@@ -162,14 +153,14 @@ export default function ReportDetailScreen({ route, navigation }) {
                 <Ionicons name="shield-checkmark" size={20} color={COLORS.accent} />
                 <Text style={styles.dropOffTitle}>Barang di Pos Satpam</Text>
                 <View style={[styles.dropOffStatusBadge, {
-                  backgroundColor: report.dropOffStatus === 'confirmed' ? COLORS.found + '30' : COLORS.pending + '30'
-                }]}>
-                  <Text style={[styles.dropOffStatusText, { color: report.dropOffStatus === 'confirmed' ? COLORS.found : COLORS.pending }]}>
-                    {report.dropOffStatus === 'confirmed' ? 'Dikonfirmasi' : report.dropOffStatus === 'received' ? 'Sudah Diterima' : 'Menunggu'}
+                   backgroundColor: report.drop_off_status === 'confirmed' ? COLORS.found + '30' : COLORS.pending + '30'
+                 }]}>
+                   <Text style={[styles.dropOffStatusText, { color: report.drop_off_status === 'confirmed' ? COLORS.found : COLORS.pending }]}>
+                     {report.drop_off_status === 'confirmed' ? 'Dikonfirmasi' : report.drop_off_status === 'received' ? 'Sudah Diterima' : 'Menunggu'}
                   </Text>
                 </View>
               </View>
-              <Text style={styles.dropOffLocation}>📍 {dropOffLocation?.name || report.dropOffLocationName}</Text>
+              <Text style={styles.dropOffLocation}>📍 {dropOffLocation?.name || report.drop_off_location_name}</Text>
               <Text style={styles.dropOffHint}>Tunjukkan laporan ini ke petugas untuk mengambil barang.</Text>
             </View>
           )}
@@ -191,8 +182,8 @@ export default function ReportDetailScreen({ route, navigation }) {
               <Ionicons name="person" size={20} color={COLORS.textSecondary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.authorName}>{report.authorName || 'Anonim'}</Text>
-              <Text style={styles.authorRole}>{report.authorRole || 'Pengguna'} · UMM</Text>
+              <Text style={styles.authorName}>{report.author_name || 'Anonim'}</Text>
+              <Text style={styles.authorRole}>{report.author_role || 'Pengguna'} · UMM</Text>
             </View>
             <View style={styles.reportBadge}>
               <Ionicons name="flag-outline" size={16} color={COLORS.textMuted} />
@@ -242,7 +233,7 @@ export default function ReportDetailScreen({ route, navigation }) {
             <Text style={styles.modalSubtitle}>Jawab pertanyaan dari penemu untuk mengklaim barang ini.</Text>
             <View style={styles.questionBox}>
               <Ionicons name="help-circle" size={18} color={COLORS.primary} />
-              <Text style={styles.questionText}>{report.verificationQuestion}</Text>
+              <Text style={styles.questionText}>{report.verification_question}</Text>
             </View>
             <TextInput
               style={styles.answerInput}

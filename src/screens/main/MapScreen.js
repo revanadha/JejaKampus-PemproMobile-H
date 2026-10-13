@@ -4,8 +4,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CAMPUS_LOCATIONS } from '../../constants/theme';
 
 const INITIAL_LAT = -7.9224;
@@ -18,12 +17,18 @@ export default function MapScreen({ navigation }) {
   const webViewRef = useRef(null);
 
   useEffect(() => {
-    const q = query(collection(db, 'reports'), where('status', '==', 'active'));
-    const unsub = onSnapshot(q, snap => {
-      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
+    const loadReports = async () => {
+      try {
+        const { data, error } = await dbHelpers.getReports({ status: 'active' });
+        if (error) throw error;
+        setReports(data || []);
+        setLoading(false);
+      } catch (e) {
+        console.error('Error loading reports:', e);
+        setLoading(false);
+      }
+    };
+    loadReports();
   }, []);
 
   const filteredReports = reports.filter(r => activeFilter === 'all' || r.type === activeFilter);
@@ -43,9 +48,9 @@ export default function MapScreen({ navigation }) {
         lat: loc.lat, lng: loc.lng, name: loc.name, isDropOff: loc.isDropOff, type: 'campus',
       }));
       const reportMarkers = filteredReports.map(report => {
-        const coords = getLocationCoords(report.locationId);
+        const coords = getLocationCoords(report.location_id);
         if (!coords) return null;
-        return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.locationName, type: report.type, id: report.id };
+        return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.location_name, type: report.type, id: report.id };
       }).filter(Boolean);
       webViewRef.current.postMessage(JSON.stringify({ campusMarkers, reportMarkers }));
     }
@@ -141,9 +146,9 @@ export default function MapScreen({ navigation }) {
               lat: loc.lat, lng: loc.lng, name: loc.name, isDropOff: loc.isDropOff,
             }));
             const reportMarkers = filteredReports.map(report => {
-              const coords = getLocationCoords(report.locationId);
+              const coords = getLocationCoords(report.location_id);
               if (!coords) return null;
-              return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.locationName, type: report.type };
+              return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.location_name, type: report.type };
             }).filter(Boolean);
             webViewRef.current?.postMessage(JSON.stringify({ campusMarkers, reportMarkers }));
           }}

@@ -5,11 +5,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  collection, query, where, orderBy,
-  onSnapshot, limit,
-} from 'firebase/firestore';
-import { db, USE_MOCK } from '../../config/firebase';
+import { USE_MOCK } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES } from '../../constants/theme';
 import ReportCard from '../../components/ReportCard';
@@ -35,27 +32,50 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     if (USE_MOCK) {
       setReports([
-        { id: '1', type: 'lost', title: 'Dompet Kulit Hitam', description: 'Hilang sekitar jam 10 pagi di Kantin.', locationId: 'kantin_a', locationName: 'Kantin Pusat (A)', category: 'dompet', createdAt: { toDate: () => new Date() }, status: 'active', authorName: 'Budi', authorRole: 'mahasiswa' },
-        { id: '2', type: 'found', title: 'Kunci Motor Honda', description: 'Ditemukan di bangku panjang parkiran barat.', locationId: 'parkir_barat', locationName: 'Area Parkir Barat', category: 'kunci', createdAt: { toDate: () => new Date(Date.now() - 3600000) }, status: 'active', authorName: 'Anonim', hasDropOff: true, dropOffStatus: 'received', dropOffLocationName: 'Pos Satpam Utama' }
+        { id: '1', type: 'lost', title: 'Dompet Kulit Hitam', description: 'Hilang sekitar jam 10 pagi di Kantin.', location_id: 'kantin_a', location_name: 'Kantin Pusat (A)', category: 'dompet', created_at: new Date().toISOString(), status: 'active', author_name: 'Budi', author_role: 'mahasiswa' },
+        { id: '2', type: 'found', title: 'Kunci Motor Honda', description: 'Ditemukan di bangku panjang parkiran barat.', location_id: 'parkir_barat', location_name: 'Area Parkir Barat', category: 'kunci', created_at: new Date(Date.now() - 3600000).toISOString(), status: 'active', author_name: 'Anonim', has_drop_off: true, drop_off_status: 'received', drop_off_location_name: 'Pos Satpam Utama' }
       ]);
       setLoading(false);
       setRefreshing(false);
       return;
     }
 
-    const constraints = [orderBy('createdAt', 'desc'), limit(50)];
-    if (activeType !== 'all') constraints.push(where('type', '==', activeType));
-    if (selectedCategory) constraints.push(where('category', '==', selectedCategory));
-    if (filters.location) constraints.push(where('locationId', '==', filters.location));
+    const loadReports = async () => {
+      try {
+        const filters = {};
+        if (activeType !== 'all') filters.status = activeType === 'lost' ? 'active' : 'active';
+        
+        const { data, error } = await dbHelpers.getReports(filters);
+        if (error) throw error;
+        
+        let filtered = data || [];
+        
+        // Filter by type if not 'all'
+        if (activeType !== 'all') {
+          filtered = filtered.filter(r => r.type === activeType);
+        }
+        
+        // Filter by category
+        if (selectedCategory) {
+          filtered = filtered.filter(r => r.category === selectedCategory);
+        }
+        
+        // Filter by location
+        if (filters.location) {
+          filtered = filtered.filter(r => r.location_id === filters.location);
+        }
+        
+        setReports(filtered);
+        setLoading(false);
+        setRefreshing(false);
+      } catch (e) {
+        console.error('Error loading reports:', e);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    };
 
-    const q = query(collection(db, 'reports'), ...constraints);
-    const unsub = onSnapshot(q, snap => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setReports(data);
-      setLoading(false);
-      setRefreshing(false);
-    });
-    return unsub;
+    loadReports();
   }, [activeType, selectedCategory, filters]);
 
   const filtered = reports.filter(r =>
@@ -71,7 +91,7 @@ export default function HomeScreen({ navigation }) {
       <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.topBg}>
         <View style={styles.greeting}>
           <View>
-            <Text style={styles.greetingText}>Halo, {userProfile?.displayName?.split(' ')[0] || 'Pengguna'} 👋</Text>
+            <Text style={styles.greetingText}>Halo, {userProfile?.display_name?.split(' ')[0] || 'Pengguna'} 👋</Text>
             <Text style={styles.greetingSubtext}>Ada barang yang hilang di kampus?</Text>
           </View>
           <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>

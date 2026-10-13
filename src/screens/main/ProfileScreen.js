@@ -5,8 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, query, where, onSnapshot, doc, updateDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
@@ -17,12 +16,18 @@ export default function ProfileScreen({ navigation }) {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(collection(db, 'reports'), where('authorId', '==', user.uid));
-    const unsub = onSnapshot(q, snap => {
-      setMyReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
+    const loadReports = async () => {
+      try {
+        const { data, error } = await dbHelpers.getReports({ authorId: user.uid });
+        if (error) throw error;
+        setMyReports(data || []);
+        setLoading(false);
+      } catch (e) {
+        console.error('Error loading reports:', e);
+        setLoading(false);
+      }
+    };
+    loadReports();
   }, [user]);
 
   const handleLogout = () => {
@@ -46,11 +51,11 @@ export default function ProfileScreen({ navigation }) {
           <View style={styles.avatarContainer}>
             <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.avatarBg} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
               <Text style={styles.avatarInitial}>
-                {userProfile?.displayName?.[0]?.toUpperCase() || '?'}
+                {userProfile?.display_name?.[0]?.toUpperCase() || '?'}
               </Text>
             </LinearGradient>
           </View>
-          <Text style={styles.userName}>{userProfile?.displayName || 'Pengguna'}</Text>
+          <Text style={styles.userName}>{userProfile?.display_name || 'Pengguna'}</Text>
           <Text style={styles.userEmail}>{user?.email}</Text>
           <View style={styles.roleBadge}>
             <Ionicons name="school-outline" size={14} color={COLORS.accent} />
@@ -92,10 +97,10 @@ export default function ProfileScreen({ navigation }) {
                 onPress={() => navigation.navigate('Home', { screen: 'ReportDetail', params: { reportId: report.id } })}
               >
                 <View style={[styles.reportTypeDot, { backgroundColor: report.type === 'lost' ? COLORS.lost : COLORS.found }]} />
-                <View style={styles.reportInfo}>
-                  <Text style={styles.reportTitle} numberOfLines={1}>{report.title}</Text>
-                  <Text style={styles.reportMeta}>{report.locationName} · {report.type === 'lost' ? 'Hilang' : 'Ditemukan'}</Text>
-                </View>
+                 <View style={styles.reportInfo}>
+                   <Text style={styles.reportTitle} numberOfLines={1}>{report.title}</Text>
+                   <Text style={styles.reportMeta}>{report.location_name} · {report.type === 'lost' ? 'Hilang' : 'Ditemukan'}</Text>
+                 </View>
                 <View style={[styles.reportStatus, { backgroundColor: report.status === 'resolved' ? COLORS.found + '30' : COLORS.pending + '30' }]}>
                   <Text style={[styles.reportStatusText, { color: report.status === 'resolved' ? COLORS.found : COLORS.pending }]}>
                     {report.status === 'active' ? 'Aktif' : report.status === 'claimed' ? 'Diklaim' : 'Selesai'}

@@ -9,8 +9,8 @@ import {
   GoogleAuthProvider,
   signInWithCredential,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db, USE_MOCK } from '../config/firebase';
+import { auth, USE_MOCK } from '../config/firebase';
+import { dbHelpers } from '../config/supabase';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 
@@ -74,10 +74,9 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async (uid) => {
     try {
-      const docRef = doc(db, 'users', uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) return docSnap.data();
-      return null;
+      const { data, error } = await dbHelpers.getUser(uid);
+      if (error) throw error;
+      return data;
     } catch (e) {
       console.error('Error fetching profile:', e);
       return null;
@@ -86,22 +85,22 @@ export const AuthProvider = ({ children }) => {
 
   const fetchOrCreateGoogleProfile = async (firebaseUser) => {
     try {
-      const docRef = doc(db, 'users', firebaseUser.uid);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) return docSnap.data();
+      const { data: existingUser } = await dbHelpers.getUser(firebaseUser.uid);
+      if (existingUser) return existingUser;
 
       const profileData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
-        displayName: firebaseUser.displayName || 'Pengguna Baru',
+        display_name: firebaseUser.displayName || 'Pengguna Baru',
         role: 'mahasiswa',
-        photoURL: firebaseUser.photoURL || null,
-        createdAt: new Date().toISOString(),
-        reportCount: 0,
-        successCount: 0,
-        loginMethod: 'google',
+        photo_url: firebaseUser.photoURL || null,
+        created_at: new Date().toISOString(),
+        report_count: 0,
+        success_count: 0,
+        login_method: 'google',
       };
-      await setDoc(docRef, profileData);
+      const { data, error } = await dbHelpers.createUser(profileData);
+      if (error) throw error;
       return profileData;
     } catch (e) {
       console.error('Error creating Google profile:', e);
@@ -120,16 +119,18 @@ export const AuthProvider = ({ children }) => {
     const profileData = {
       uid: newUser.uid,
       email,
-      displayName,
+      display_name: displayName,
       role,
-      photoURL: null,
-      createdAt: new Date().toISOString(),
-      reportCount: 0,
-      successCount: 0,
-      loginMethod: 'email',
+      photo_url: null,
+      created_at: new Date().toISOString(),
+      report_count: 0,
+      success_count: 0,
+      login_method: 'email',
     };
 
-    await setDoc(doc(db, 'users', newUser.uid), profileData);
+    const { error } = await dbHelpers.createUser(profileData);
+    if (error) throw error;
+    
     setUserProfile(profileData);
     return userCredential;
   };
