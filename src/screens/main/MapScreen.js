@@ -4,8 +4,7 @@ import {
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { supabase } from '../../config/supabase';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CAMPUS_LOCATIONS } from '../../constants/theme';
 
 const INITIAL_LAT = -7.9224;
@@ -17,13 +16,34 @@ export default function MapScreen({ navigation }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const webViewRef = useRef(null);
 
+  const fetchReports = async () => {
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .eq('status', 'active');
+      
+    if (!error && data) {
+      setReports(data.map(d => ({
+        ...d,
+        locationId: d.location_id,
+        locationName: d.location_name
+      })));
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const q = query(collection(db, 'reports'), where('status', '==', 'active'));
-    const unsub = onSnapshot(q, snap => {
-      setReports(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
+    fetchReports();
+    
+    const channel = supabase.channel('public:reports_map')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+         fetchReports();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const filteredReports = reports.filter(r => activeFilter === 'all' || r.type === activeFilter);

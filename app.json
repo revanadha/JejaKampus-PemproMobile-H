@@ -25,7 +25,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#0D1117"
       },
       "package": "com.umm.jejakkampus",
@@ -59,7 +59,8 @@
           "locationWhenInUsePermission": "JejaKampus perlu lokasi Anda untuk menampilkan titik barang terdekat."
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-secure-store"
     ],
     "extra": {
       "eas": {

@@ -8,13 +8,13 @@ import 'dayjs/locale/id';
 dayjs.extend(relativeTime);
 dayjs.locale('id');
 
-export default function ReportCard({ report, onPress }) {
+export default function ReportCard({ report, onPress, onLongPress }) {
   const category = CATEGORIES.find(c => c.id === report.category);
   const isLost = report.type === 'lost';
   const timeAgo = report.createdAt?.toDate ? dayjs(report.createdAt.toDate()).fromNow() : '';
 
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.85}>
+    <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.85}>
       {/* Left accent bar */}
       <View style={[styles.accent, { backgroundColor: isLost ? COLORS.lost : COLORS.found }]} />
 

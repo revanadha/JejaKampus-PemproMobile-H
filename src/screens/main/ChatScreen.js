@@ -5,11 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  collection, addDoc, query, orderBy,
-  onSnapshot, serverTimestamp, doc, updateDoc,
-} from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 import dayjs from 'dayjs';
@@ -23,18 +19,39 @@ export default function ChatScreen({ route, navigation }) {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const flatListRef = useRef(null);
 
+  const fetchMessages = async () => {
+    const { data, error } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('chat_id', chatId)
+      .order('created_at', { ascending: true });
+      
+    if (!error && data) {
+      setMessages(data.map(d => ({
+        id: d.id,
+        text: d.text,
+        senderId: d.sender_id,
+        senderName: d.sender_name,
+        isAnonymous: d.is_anonymous,
+        createdAt: new Date(d.created_at)
+      })));
+    }
+    setLoading(false);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  };
+
   useEffect(() => {
-    const q = query(
-      collection(db, 'chats', chatId, 'messages'),
-      orderBy('createdAt', 'asc')
-    );
-    const unsub = onSnapshot(q, snap => {
-      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setMessages(msgs);
-      setLoading(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    });
-    return unsub;
+    fetchMessages();
+    
+    const channel = supabase.channel(`public:messages:${chatId}`)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` }, () => {
+         fetchMessages();
+      })
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [chatId]);
 
   const sendMessage = async () => {
@@ -42,30 +59,35 @@ export default function ChatScreen({ route, navigation }) {
     if (!text) return;
     setInputText('');
     try {
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      const msgData = {
+        chat_id: chatId,
         text,
-        senderId: user.uid,
-        senderName: isAnonymous ? 'Anonim' : userProfile?.displayName,
-        isAnonymous,
-        createdAt: serverTimestamp(),
+        sender_id: user.id,
+        sender_name: isAnonymous ? 'Anonim' : userProfile?.display_name,
+        is_anonymous: isAnonymous,
         type: 'text',
-      });
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: text,
-        lastMessageTime: serverTimestamp(),
-      });
+      };
+      
+      const { error: insertError } = await supabase.from('messages').insert([msgData]);
+      if (insertError) throw insertError;
+      
+      await supabase.from('chats').update({
+        last_message: text,
+        last_message_time: new Date().toISOString()
+      }).eq('id', chatId);
+      
     } catch (e) { console.error('Send message error:', e); }
   };
 
   const renderMessage = ({ item, index }) => {
-    const isMe = item.senderId === user.uid;
-    const showDate = index === 0 || !dayjs(messages[index - 1]?.createdAt?.toDate()).isSame(dayjs(item.createdAt?.toDate()), 'day');
+    const isMe = item.senderId === user.id;
+    const showDate = index === 0 || !dayjs(messages[index - 1]?.createdAt).isSame(dayjs(item.createdAt), 'day');
 
     return (
       <View>
         {showDate && (
           <Text style={styles.dateDivider}>
-            {dayjs(item.createdAt?.toDate()).format('D MMMM YYYY')}
+            {dayjs(item.createdAt).format('D MMMM YYYY')}
           </Text>
         )}
         <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
@@ -74,7 +96,7 @@ export default function ChatScreen({ route, navigation }) {
           )}
           <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.text}</Text>
           <Text style={[styles.messageTime, isMe && styles.myMessageTime]}>
-            {item.createdAt ? dayjs(item.createdAt.toDate()).format('HH:mm') : '...'}
+            {item.createdAt ? dayjs(item.createdAt).format('HH:mm') : '...'}
           </Text>
         </View>
       </View>

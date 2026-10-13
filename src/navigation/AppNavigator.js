@@ -21,6 +21,14 @@ import ProfileScreen from '../screens/main/ProfileScreen';
 import CreateReportScreen from '../screens/main/CreateReportScreen';
 import ReportDetailScreen from '../screens/main/ReportDetailScreen';
 import ChatScreen from '../screens/main/ChatScreen';
+import NotificationsScreen from '../screens/main/NotificationsScreen';
+
+// Settings Screens
+import EditProfileScreen from '../screens/settings/EditProfileScreen';
+import NotificationSettingsScreen from '../screens/settings/NotificationSettingsScreen';
+import PrivacySecurityScreen from '../screens/settings/PrivacySecurityScreen';
+import HelpFaqScreen from '../screens/settings/HelpFaqScreen';
+import AboutScreen from '../screens/settings/AboutScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -39,9 +47,10 @@ function HomeStack() {
 // Custom Tab Bar
 function CustomTabBar({ state, descriptors, navigation }) {
   const tabs = [
-    { name: 'Home', icon: 'home', activeIcon: 'home', label: 'Beranda' },
+    { name: 'Home', icon: 'home-outline', activeIcon: 'home', label: 'Beranda' },
     { name: 'Map', icon: 'map-outline', activeIcon: 'map', label: 'Peta' },
     { name: 'Chats', icon: 'chatbubbles-outline', activeIcon: 'chatbubbles', label: 'Pesan' },
+    { name: 'Notifications', icon: 'notifications-outline', activeIcon: 'notifications', label: 'Notifikasi' },
     { name: 'Profile', icon: 'person-outline', activeIcon: 'person', label: 'Profil' },
   ];
 
@@ -90,6 +99,7 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeStack} />
       <Tab.Screen name="Map" component={MapScreen} />
       <Tab.Screen name="Chats" component={ChatsListScreen} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -128,6 +138,12 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Chat" component={ChatScreen} options={{ presentation: 'card' }} />
+            {/* Settings Screens */}
+            <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ presentation: 'card' }} />
+            <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} options={{ presentation: 'card' }} />
+            <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} options={{ presentation: 'card' }} />
+            <Stack.Screen name="HelpFaq" component={HelpFaqScreen} options={{ presentation: 'card' }} />
+            <Stack.Screen name="About" component={AboutScreen} options={{ presentation: 'card' }} />
           </>
         ) : (
           <Stack.Screen name="Auth" component={AuthStack} />

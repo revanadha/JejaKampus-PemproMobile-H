@@ -6,9 +6,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../config/firebase';
+import { supabase } from '../../config/supabase';
+import { createReport } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } from '../../constants/theme';
 
@@ -31,7 +30,6 @@ export default function CreateReportScreen({ navigation }) {
   const [dropOffLocationId, setDropOffLocationId] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1: basic info, 2: details, 3: verification
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
@@ -52,10 +50,22 @@ export default function CreateReportScreen({ navigation }) {
     for (const img of images) {
       const response = await fetch(img.uri);
       const blob = await response.blob();
-      const imgRef = ref(storage, `reports/${user.uid}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-      await uploadBytes(imgRef, blob);
-      const url = await getDownloadURL(imgRef);
-      urls.push(url);
+      const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
+      const filePath = `${user.id}/${filename}`;
+      
+      const { data, error } = await supabase.storage
+        .from('reports')
+        .upload(filePath, blob, {
+          contentType: 'image/jpeg',
+        });
+        
+      if (error) throw error;
+      
+      const { data: { publicUrl } } = supabase.storage
+        .from('reports')
+        .getPublicUrl(filePath);
+        
+      urls.push(publicUrl);
     }
     return urls;
   };
@@ -75,30 +85,30 @@ export default function CreateReportScreen({ navigation }) {
         title: form.title,
         description: form.description,
         category: form.category,
-        locationId: form.locationId,
-        locationName: CAMPUS_LOCATIONS.find(l => l.id === form.locationId)?.name || '',
+        location_id: form.locationId,
+        location_name: CAMPUS_LOCATIONS.find(l => l.id === form.locationId)?.name || '',
         color: form.color,
         brand: form.brand,
         images: imageUrls,
-        isAnonymous,
-        authorId: user.uid,
-        authorName: isAnonymous ? 'Anonim' : userProfile?.displayName,
-        authorRole: userProfile?.role,
+        is_anonymous: isAnonymous,
+        author_id: user.id,
+        author_name: isAnonymous ? 'Anonim' : userProfile?.display_name,
+        author_role: userProfile?.role,
         status: 'active',
-        claimRequests: [],
-        // For 'found' items
-        hiddenDetails: type === 'found' ? form.hiddenDetails : '',
-        verificationQuestion: type === 'found' ? form.verificationQuestion : '',
-        verificationAnswer: type === 'found' ? form.verificationAnswer.toLowerCase().trim() : '',
-        // Drop-off point
-        hasDropOff: type === 'found' && useDropOff,
-        dropOffLocationId: useDropOff ? dropOffLocationId : null,
-        dropOffLocationName: useDropOff ? CAMPUS_LOCATIONS.find(l => l.id === dropOffLocationId)?.name : null,
-        dropOffStatus: useDropOff ? 'pending' : null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        claim_requests: [],
+        hidden_details: type === 'found' ? form.hiddenDetails : null,
+        verification_question: type === 'found' ? form.verificationQuestion : null,
+        verification_answer: type === 'found' ? form.verificationAnswer.toLowerCase().trim() : null,
+        has_drop_off: type === 'found' && useDropOff,
+        drop_off_location_id: useDropOff ? dropOffLocationId : null,
+        drop_off_location_name: useDropOff ? CAMPUS_LOCATIONS.find(l => l.id === dropOffLocationId)?.name : null,
+        drop_off_status: useDropOff ? 'pending' : null,
       };
-      await addDoc(collection(db, 'reports'), reportData);
+      
+      // POST dengan access token otomatis dari reportService
+      const { data: created, error } = await createReport(reportData);
+      if (error) throw new Error(error.message);
+      
       Alert.alert('Berhasil! 🎉', 'Laporan Anda telah dipublikasikan.', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);

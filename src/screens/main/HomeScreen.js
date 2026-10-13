@@ -5,11 +5,8 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  collection, query, where, orderBy,
-  onSnapshot, limit,
-} from 'firebase/firestore';
-import { db, USE_MOCK } from '../../config/firebase';
+import { supabase, USE_MOCK } from '../../config/supabase';
+import { getReports } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES } from '../../constants/theme';
 import ReportCard from '../../components/ReportCard';
@@ -32,6 +29,33 @@ export default function HomeScreen({ navigation }) {
   const [showFilter, setShowFilter] = useState(false);
   const [filters, setFilters] = useState({ location: null, dateRange: null });
 
+  const fetchReports = async () => {
+    // GET dengan access token otomatis dari reportService
+    const { data, error } = await getReports({
+      type: activeType !== 'all' ? activeType : undefined,
+      category: selectedCategory || undefined,
+      location_id: filters.location || undefined,
+      limit: 50,
+    });
+
+    if (!error && data) {
+      const mappedData = data.map(d => ({
+        ...d,
+        locationId: d.location_id,
+        locationName: d.location_name,
+        authorName: d.author_name,
+        authorRole: d.author_role,
+        createdAt: { toDate: () => new Date(d.created_at) },
+        dropOffStatus: d.drop_off_status,
+        dropOffLocationName: d.drop_off_location_name,
+        hasDropOff: d.has_drop_off,
+      }));
+      setReports(mappedData);
+    }
+    setLoading(false);
+    setRefreshing(false);
+  };
+
   useEffect(() => {
     if (USE_MOCK) {
       setReports([
@@ -43,19 +67,17 @@ export default function HomeScreen({ navigation }) {
       return;
     }
 
-    const constraints = [orderBy('createdAt', 'desc'), limit(50)];
-    if (activeType !== 'all') constraints.push(where('type', '==', activeType));
-    if (selectedCategory) constraints.push(where('category', '==', selectedCategory));
-    if (filters.location) constraints.push(where('locationId', '==', filters.location));
+    fetchReports();
 
-    const q = query(collection(db, 'reports'), ...constraints);
-    const unsub = onSnapshot(q, snap => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setReports(data);
-      setLoading(false);
-      setRefreshing(false);
-    });
-    return unsub;
+    const channel = supabase.channel('public:reports')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'reports' }, () => {
+         fetchReports();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [activeType, selectedCategory, filters]);
 
   const filtered = reports.filter(r =>
@@ -63,7 +85,10 @@ export default function HomeScreen({ navigation }) {
     r.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const onRefresh = () => { setRefreshing(true); };
+  const onRefresh = () => { 
+    setRefreshing(true); 
+    fetchReports();
+  };
 
   const renderHeader = () => (
     <View>
@@ -71,7 +96,7 @@ export default function HomeScreen({ navigation }) {
       <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.topBg}>
         <View style={styles.greeting}>
           <View>
-            <Text style={styles.greetingText}>Halo, {userProfile?.displayName?.split(' ')[0] || 'Pengguna'} 👋</Text>
+            <Text style={styles.greetingText}>Halo, {userProfile?.display_name?.split(' ')[0] || 'Pengguna'} 👋</Text>
             <Text style={styles.greetingSubtext}>Ada barang yang hilang di kampus?</Text>
           </View>
           <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>

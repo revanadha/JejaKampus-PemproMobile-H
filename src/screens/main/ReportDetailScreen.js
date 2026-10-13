@@ -5,12 +5,10 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  doc, getDoc, updateDoc, arrayUnion, serverTimestamp, addDoc, collection,
-} from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { supabase } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } from '../../constants/theme';
+import { getReportById, updateReportStatus } from '../../services/reportService';
 import dayjs from 'dayjs';
 import 'dayjs/locale/id';
 dayjs.locale('id');
@@ -31,9 +29,27 @@ export default function ReportDetailScreen({ route, navigation }) {
 
   const fetchReport = async () => {
     try {
-      const docRef = doc(db, 'reports', reportId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) setReport({ id: docSnap.id, ...docSnap.data() });
+      // GET dengan access token otomatis dari reportService
+      const { data, error } = await getReportById(reportId);
+        
+      if (!error && data) {
+        setReport({
+          ...data,
+          locationId: data.location_id,
+          locationName: data.location_name,
+          authorId: data.author_id,
+          authorName: data.author_name,
+          authorRole: data.author_role,
+          verificationAnswer: data.verification_answer,
+          verificationQuestion: data.verification_question,
+          dropOffLocationId: data.drop_off_location_id,
+          dropOffLocationName: data.drop_off_location_name,
+          dropOffStatus: data.drop_off_status,
+          hasDropOff: data.has_drop_off,
+          claimRequests: data.claim_requests || [],
+          createdAt: { toDate: () => new Date(data.created_at) }
+        });
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -48,33 +64,40 @@ export default function ReportDetailScreen({ route, navigation }) {
         setClaimLoading(false);
         return;
       }
-      // Create chat room & notify
-      const chatRef = await addDoc(collection(db, 'chats'), {
-        reportId,
-        reportTitle: report.title,
-        participants: [user.uid, report.authorId],
-        participantNames: {
-          [user.uid]: userProfile?.displayName || 'Anonim',
+      
+      // Create chat room
+      const { data: chatData, error: chatError } = await supabase.from('chats').insert([{
+        report_id: reportId,
+        report_title: report.title,
+        participants: [user.id, report.authorId],
+        participant_names: {
+          [user.id]: userProfile?.display_name || 'Anonim',
           [report.authorId]: report.authorName,
         },
-        createdAt: serverTimestamp(),
-        lastMessage: '',
-        lastMessageTime: serverTimestamp(),
-      });
-      await updateDoc(doc(db, 'reports', reportId), {
-        claimRequests: arrayUnion({ userId: user.uid, userName: userProfile?.displayName, chatId: chatRef.id, timestamp: new Date().toISOString() }),
-        status: 'claimed',
-      });
+        last_message: '',
+      }]).select().single();
+      
+      if (chatError) throw chatError;
+
+      // Update report claimRequests
+      const newClaim = { userId: user.id, userName: userProfile?.display_name, chatId: chatData.id, timestamp: new Date().toISOString() };
+      const updatedClaims = [...(report.claimRequests || []), newClaim];
+      
+      // PUT dengan access token otomatis dari reportService
+      const { error: updateError } = await updateReportStatus(reportId, 'claimed');
+        
+      if (updateError) throw new Error(updateError.message);
+        
       setShowClaimModal(false);
       Alert.alert('Berhasil! ✅', 'Verifikasi berhasil. Anda bisa mulai chat dengan penemu.', [
-        { text: 'Buka Chat', onPress: () => navigation.navigate('Chat', { chatId: chatRef.id, reportTitle: report.title, otherUserId: report.authorId, otherUserName: report.authorName }) }
+        { text: 'Buka Chat', onPress: () => navigation.navigate('Chat', { chatId: chatData.id, reportTitle: report.title, otherUserId: report.authorId, otherUserName: report.authorName }) }
       ]);
+      fetchReport(); // reload
     } catch (e) { Alert.alert('Error', e.message); }
     finally { setClaimLoading(false); }
   };
 
   const openChat = async () => {
-    // For report owner: find existing chat or create new
     const existingClaim = report.claimRequests?.[0];
     if (existingClaim?.chatId) {
       navigation.navigate('Chat', {
@@ -92,8 +115,8 @@ export default function ReportDetailScreen({ route, navigation }) {
   const category = CATEGORIES.find(c => c.id === report.category);
   const location = CAMPUS_LOCATIONS.find(l => l.id === report.locationId);
   const dropOffLocation = CAMPUS_LOCATIONS.find(l => l.id === report.dropOffLocationId);
-  const isOwner = user?.uid === report.authorId;
-  const isClaimed = report.claimRequests?.some(c => c.userId === user?.uid);
+  const isOwner = user?.id === report.authorId;
+  const isClaimed = report.claimRequests?.some(c => c.userId === user?.id);
 
   return (
     <View style={styles.container}>
