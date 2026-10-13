@@ -6,9 +6,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } from '../../constants/theme';
 
@@ -52,10 +50,11 @@ export default function CreateReportScreen({ navigation }) {
     for (const img of images) {
       const response = await fetch(img.uri);
       const blob = await response.blob();
-      const imgRef = ref(storage, `reports/${user.uid}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-      await uploadBytes(imgRef, blob);
-      const url = await getDownloadURL(imgRef);
-      urls.push(url);
+      const fileName = `reports/${user.uid}/${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const { error } = await dbHelpers.uploadFile('images', fileName, blob);
+      if (error) throw error;
+      const publicUrl = await dbHelpers.getPublicUrl('images', fileName);
+      urls.push(publicUrl);
     }
     return urls;
   };
@@ -75,30 +74,31 @@ export default function CreateReportScreen({ navigation }) {
         title: form.title,
         description: form.description,
         category: form.category,
-        locationId: form.locationId,
-        locationName: CAMPUS_LOCATIONS.find(l => l.id === form.locationId)?.name || '',
+        location_id: form.locationId,
+        location_name: CAMPUS_LOCATIONS.find(l => l.id === form.locationId)?.name || '',
         color: form.color,
         brand: form.brand,
         images: imageUrls,
-        isAnonymous,
-        authorId: user.uid,
-        authorName: isAnonymous ? 'Anonim' : userProfile?.displayName,
-        authorRole: userProfile?.role,
+        is_anonymous: isAnonymous,
+        author_id: user.uid,
+        author_name: isAnonymous ? 'Anonim' : userProfile?.display_name,
+        author_role: userProfile?.role,
         status: 'active',
-        claimRequests: [],
+        claim_requests: [],
         // For 'found' items
-        hiddenDetails: type === 'found' ? form.hiddenDetails : '',
-        verificationQuestion: type === 'found' ? form.verificationQuestion : '',
-        verificationAnswer: type === 'found' ? form.verificationAnswer.toLowerCase().trim() : '',
+        hidden_details: type === 'found' ? form.hiddenDetails : '',
+        verification_question: type === 'found' ? form.verificationQuestion : '',
+        verification_answer: type === 'found' ? form.verificationAnswer.toLowerCase().trim() : '',
         // Drop-off point
-        hasDropOff: type === 'found' && useDropOff,
-        dropOffLocationId: useDropOff ? dropOffLocationId : null,
-        dropOffLocationName: useDropOff ? CAMPUS_LOCATIONS.find(l => l.id === dropOffLocationId)?.name : null,
-        dropOffStatus: useDropOff ? 'pending' : null,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        has_drop_off: type === 'found' && useDropOff,
+        drop_off_location_id: useDropOff ? dropOffLocationId : null,
+        drop_off_location_name: useDropOff ? CAMPUS_LOCATIONS.find(l => l.id === dropOffLocationId)?.name : null,
+        drop_off_status: useDropOff ? 'pending' : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
-      await addDoc(collection(db, 'reports'), reportData);
+      const { error } = await dbHelpers.createReport(reportData);
+      if (error) throw error;
       Alert.alert('Berhasil! 🎉', 'Laporan Anda telah dipublikasikan.', [
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);

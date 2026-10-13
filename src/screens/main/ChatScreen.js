@@ -5,11 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  collection, addDoc, query, orderBy,
-  onSnapshot, serverTimestamp, doc, updateDoc,
-} from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { dbHelpers } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 import dayjs from 'dayjs';
@@ -24,17 +20,19 @@ export default function ChatScreen({ route, navigation }) {
   const flatListRef = useRef(null);
 
   useEffect(() => {
-    const q = query(
-      collection(db, 'chats', chatId, 'messages'),
-      orderBy('createdAt', 'asc')
-    );
-    const unsub = onSnapshot(q, snap => {
-      const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setMessages(msgs);
-      setLoading(false);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    });
-    return unsub;
+    const loadMessages = async () => {
+      try {
+        const { data, error } = await dbHelpers.getMessages(chatId);
+        if (error) throw error;
+        setMessages(data || []);
+        setLoading(false);
+        setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      } catch (e) {
+        console.error('Error loading messages:', e);
+        setLoading(false);
+      }
+    };
+    loadMessages();
   }, [chatId]);
 
   const sendMessage = async () => {
@@ -42,39 +40,36 @@ export default function ChatScreen({ route, navigation }) {
     if (!text) return;
     setInputText('');
     try {
-      await addDoc(collection(db, 'chats', chatId, 'messages'), {
+      await dbHelpers.createMessage({
+        chat_id: chatId,
         text,
-        senderId: user.uid,
-        senderName: isAnonymous ? 'Anonim' : userProfile?.displayName,
-        isAnonymous,
-        createdAt: serverTimestamp(),
+        sender_id: user.uid,
+        sender_name: isAnonymous ? 'Anonim' : userProfile?.display_name,
+        is_anonymous: isAnonymous,
+        created_at: new Date().toISOString(),
         type: 'text',
-      });
-      await updateDoc(doc(db, 'chats', chatId), {
-        lastMessage: text,
-        lastMessageTime: serverTimestamp(),
       });
     } catch (e) { console.error('Send message error:', e); }
   };
 
   const renderMessage = ({ item, index }) => {
-    const isMe = item.senderId === user.uid;
-    const showDate = index === 0 || !dayjs(messages[index - 1]?.createdAt?.toDate()).isSame(dayjs(item.createdAt?.toDate()), 'day');
+    const isMe = item.sender_id === user.uid;
+    const showDate = index === 0 || !dayjs(messages[index - 1]?.created_at).isSame(dayjs(item.created_at), 'day');
 
     return (
       <View>
         {showDate && (
           <Text style={styles.dateDivider}>
-            {dayjs(item.createdAt?.toDate()).format('D MMMM YYYY')}
+            {dayjs(item.created_at).format('D MMMM YYYY')}
           </Text>
         )}
         <View style={[styles.messageBubble, isMe ? styles.myBubble : styles.theirBubble]}>
           {!isMe && (
-            <Text style={styles.senderName}>{item.senderName}</Text>
+            <Text style={styles.senderName}>{item.sender_name}</Text>
           )}
           <Text style={[styles.messageText, isMe && styles.myMessageText]}>{item.text}</Text>
           <Text style={[styles.messageTime, isMe && styles.myMessageTime]}>
-            {item.createdAt ? dayjs(item.createdAt.toDate()).format('HH:mm') : '...'}
+            {item.created_at ? dayjs(item.created_at).format('HH:mm') : '...'}
           </Text>
         </View>
       </View>
