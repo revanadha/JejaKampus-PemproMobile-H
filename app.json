@@ -18,9 +18,6 @@
         "NSCameraUsageDescription": "JejaKampus perlu akses kamera untuk mengambil foto barang.",
         "NSPhotoLibraryUsageDescription": "JejaKampus perlu akses galeri untuk mengunggah foto barang.",
         "NSLocationWhenInUseUsageDescription": "JejaKampus perlu akses lokasi untuk menampilkan peta terdekat."
-      },
-      "config": {
-        "googleMapsApiKey": "YOUR_IOS_GOOGLE_MAPS_API_KEY"
       }
     },
     "android": {
@@ -35,12 +32,7 @@
         "WRITE_EXTERNAL_STORAGE",
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ],
-      "config": {
-        "googleMaps": {
-          "apiKey": "YOUR_ANDROID_GOOGLE_MAPS_API_KEY"
-        }
-      }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"

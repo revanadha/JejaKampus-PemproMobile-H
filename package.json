@@ -24,6 +24,7 @@
     "expo-status-bar": "~57.0.1",
     "expo-web-browser": "~57.0.3",
     "react": "19.2.3",
+    "react-dom": "19.2.3",
     "react-native": "0.86.3",
     "react-native-gesture-handler": "^3.3.0",
     "react-native-maps": "^1.29.11",
@@ -31,6 +32,7 @@
     "react-native-safe-area-context": "^5.10.0",
     "react-native-screens": "^4.28.0",
     "react-native-url-polyfill": "^4.0.0",
+    "react-native-web": "^0.21.2",
     "react-native-webview": "13.16.1",
     "uuid": "^14.0.2"
   },

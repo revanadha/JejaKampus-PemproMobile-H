@@ -113,21 +113,22 @@ export const SHADOWS = {
 };
 
 export const CAMPUS_LOCATIONS = [
-  { id: 'perpus_pusat', name: 'Perpustakaan Pusat UMM', lat: -7.9227, lng: 112.5975 },
-  { id: 'rektorat', name: 'Gedung Rektorat', lat: -7.9215, lng: 112.5988 },
-  { id: 'fkip', name: 'Gedung FKIP', lat: -7.9220, lng: 112.5995 },
-  { id: 'ft', name: 'Gedung Fakultas Teknik', lat: -7.9230, lng: 112.5970 },
-  { id: 'fk', name: 'Gedung Fakultas Kedokteran', lat: -7.9210, lng: 112.6000 },
-  { id: 'feb', name: 'Gedung FEB', lat: -7.9220, lng: 112.5985 },
-  { id: 'kantin_a', name: 'Kantin Pusat', lat: -7.9228, lng: 112.5990 },
-  { id: 'masjid_ar', name: 'Masjid AR. Fachruddin', lat: -7.9224, lng: 112.5978 },
-  { id: 'parkir_barat', name: 'Area Parkir Barat', lat: -7.9235, lng: 112.5965 },
-  { id: 'gkb1', name: 'GKB 1', lat: -7.9218, lng: 112.5982 },
-  { id: 'gkb2', name: 'GKB 2', lat: -7.9222, lng: 112.5992 },
-  { id: 'gkb3', name: 'GKB 3', lat: -7.9225, lng: 112.5998 },
-  { id: 'pos_satpam_utama', name: 'Pos Satpam Utama (Gerbang Depan)', lat: -7.9240, lng: 112.5975, isDropOff: true },
-  { id: 'pos_satpam_belakang', name: 'Pos Satpam Belakang', lat: -7.9205, lng: 112.6005, isDropOff: true },
-  { id: 'pos_satpam_perpus', name: 'Pos Satpam Perpustakaan', lat: -7.9228, lng: 112.5974, isDropOff: true },
+  { id: 'perpus_pusat', name: 'Perpustakaan Pusat UMM', lat: -7.92062, lng: 112.59694 },
+  { id: 'masjid_ar', name: 'Masjid AR. Fachruddin', lat: -7.92131, lng: 112.59583 },
+  { id: 'parkir_barat', name: 'Area Parkir Barat', lat: -7.92095, lng: 112.59560 },
+  { id: 'rektorat', name: 'Gedung Rektorat', lat: -7.92167, lng: 112.59813 },
+  { id: 'gkb1', name: 'GKB 1', lat: -7.92062, lng: 112.59830 },
+  { id: 'gkb2', name: 'GKB 2', lat: -7.92135, lng: 112.59913 },
+  { id: 'gkb3', name: 'GKB 3', lat: -7.92112, lng: 112.59924 },
+  { id: 'gkb4', name: 'GKB 4', lat: -7.92190, lng: 112.60012 },
+  { id: 'fkip', name: 'Gedung FKIP (GKB 1)', lat: -7.92070, lng: 112.59840 },
+  { id: 'feb', name: 'Gedung FEB (GKB 2)', lat: -7.92140, lng: 112.59910 },
+  { id: 'ft', name: 'Gedung Fakultas Teknik (GKB 3)', lat: -7.92115, lng: 112.59930 },
+  { id: 'fk', name: 'Gedung FK & Lab Biomedik', lat: -7.92265, lng: 112.59760 },
+  { id: 'kantin_a', name: 'Kantin Danau UMM', lat: -7.92140, lng: 112.59850 },
+  { id: 'pos_satpam_utama', name: 'Pos Satpam Utama (Gerbang Depan)', lat: -7.92320, lng: 112.59720, isDropOff: true },
+  { id: 'pos_satpam_belakang', name: 'Pos Satpam Belakang', lat: -7.92020, lng: 112.60010, isDropOff: true },
+  { id: 'pos_satpam_perpus', name: 'Pos Satpam Perpustakaan', lat: -7.92080, lng: 112.59680, isDropOff: true },
 ];
 
 export const CATEGORIES = [

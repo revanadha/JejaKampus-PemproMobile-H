@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
+  View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform,
 } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../config/supabase';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CAMPUS_LOCATIONS } from '../../constants/theme';
 
-const INITIAL_LAT = -7.9224;
-const INITIAL_LNG = 112.5984;
+const INITIAL_LAT = -7.9215;
+const INITIAL_LNG = 112.5980;
 
 export default function MapScreen({ navigation }) {
   const [reports, setReports] = useState([]);
@@ -57,17 +57,28 @@ export default function MapScreen({ navigation }) {
     };
   };
 
+  const campusMarkersData = CAMPUS_LOCATIONS.map(loc => ({
+    lat: loc.lat, lng: loc.lng, name: loc.name, isDropOff: loc.isDropOff, type: 'campus',
+  }));
+  const reportMarkersData = filteredReports.map(report => {
+    const coords = getLocationCoords(report.locationId);
+    if (!coords) return null;
+    return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.locationName, type: report.type, id: report.id };
+  }).filter(Boolean);
+
+  const initialDataJson = JSON.stringify({
+    campusMarkers: campusMarkersData,
+    reportMarkers: reportMarkersData,
+  });
+
   useEffect(() => {
     if (webViewRef.current) {
-      const campusMarkers = CAMPUS_LOCATIONS.map(loc => ({
-        lat: loc.lat, lng: loc.lng, name: loc.name, isDropOff: loc.isDropOff, type: 'campus',
-      }));
-      const reportMarkers = filteredReports.map(report => {
-        const coords = getLocationCoords(report.locationId);
-        if (!coords) return null;
-        return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.locationName, type: report.type, id: report.id };
-      }).filter(Boolean);
-      webViewRef.current.postMessage(JSON.stringify({ campusMarkers, reportMarkers }));
+      const payload = JSON.stringify({ campusMarkers: campusMarkersData, reportMarkers: reportMarkersData });
+      if (Platform.OS === 'web') {
+        webViewRef.current.contentWindow?.postMessage(payload, '*');
+      } else {
+        webViewRef.current.postMessage(payload);
+      }
     }
   }, [filteredReports]);
 
@@ -95,26 +106,30 @@ export default function MapScreen({ navigation }) {
 <body>
   <div id="map"></div>
   <script>
-    const map = L.map('map',{zoomControl:true}).setView([-7.9224,112.5984],17);
+    const map = L.map('map',{zoomControl:true}).setView([-7.9215,112.5980],17);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'OSM',maxZoom:19}).addTo(map);
     let cl=L.layerGroup().addTo(map), rl=L.layerGroup().addTo(map);
     function mi(html){return L.divIcon({html,className:'',iconSize:[32,32],iconAnchor:[16,16]});}
+    function update(d){
+      if(!d)return;
+      cl.clearLayers(); rl.clearLayers();
+      (d.campusMarkers||[]).forEach(m=>{
+        const ic=mi('<div class="cp'+(m.isDropOff?' dp':'')+'">'+( m.isDropOff?'🛡':'🏛')+'</div>');
+        L.marker([m.lat,m.lng],{icon:ic}).bindPopup('<div class="pb"><div class="pti">'+m.name+'</div></div>').addTo(cl);
+      });
+      (d.reportMarkers||[]).forEach(m=>{
+        const lost=m.type==='lost';
+        const ic=mi('<div class="'+(lost?'lp':'fp')+'">'+(lost?'🔍':'✅')+'</div>');
+        const pc=lost?'#ff453a':'#30d158';
+        const pop='<div class="pb"><span class="pt" style="background:'+pc+'">'+(lost?'HILANG':'DITEMUKAN')+'</span><div class="pti">'+m.title+'</div><div class="pl">📍 '+(m.location||'')+'</div></div>';
+        L.marker([m.lat,m.lng],{icon:ic}).bindPopup(pop).addTo(rl);
+      });
+    }
+    update(${initialDataJson});
     function handle(e){
       try{
-        const d=JSON.parse(e.data);
-        if(!d)return;
-        cl.clearLayers(); rl.clearLayers();
-        (d.campusMarkers||[]).forEach(m=>{
-          const ic=mi('<div class="cp'+(m.isDropOff?' dp':'')+'">'+( m.isDropOff?'🛡':'🏛')+'</div>');
-          L.marker([m.lat,m.lng],{icon:ic}).bindPopup('<div class="pb"><div class="pti">'+m.name+'</div></div>').addTo(cl);
-        });
-        (d.reportMarkers||[]).forEach(m=>{
-          const lost=m.type==='lost';
-          const ic=mi('<div class="'+(lost?'lp':'fp')+'">'+(lost?'🔍':'✅')+'</div>');
-          const pc=lost?'#ff453a':'#30d158';
-          const pop='<div class="pb"><span class="pt" style="background:'+pc+'">'+(lost?'HILANG':'DITEMUKAN')+'</span><div class="pti">'+m.title+'</div><div class="pl">📍 '+(m.location||'')+'</div></div>';
-          L.marker([m.lat,m.lng],{icon:ic}).bindPopup(pop).addTo(rl);
-        });
+        const d=typeof e.data==='string'?JSON.parse(e.data):e.data;
+        update(d);
       }catch(e){console.error(e);}
     }
     document.addEventListener('message',handle);
@@ -149,6 +164,13 @@ export default function MapScreen({ navigation }) {
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loadingText}>Memuat peta...</Text>
         </View>
+      ) : Platform.OS === 'web' ? (
+        <iframe
+          ref={webViewRef}
+          srcDoc={mapHtml}
+          style={{ border: 'none', width: '100%', height: '100%', flex: 1, backgroundColor: '#0d1117' }}
+          title="OpenStreetMap"
+        />
       ) : (
         <WebView
           ref={webViewRef}
@@ -157,15 +179,7 @@ export default function MapScreen({ navigation }) {
           javaScriptEnabled
           domStorageEnabled
           onLoad={() => {
-            const campusMarkers = CAMPUS_LOCATIONS.map(loc => ({
-              lat: loc.lat, lng: loc.lng, name: loc.name, isDropOff: loc.isDropOff,
-            }));
-            const reportMarkers = filteredReports.map(report => {
-              const coords = getLocationCoords(report.locationId);
-              if (!coords) return null;
-              return { lat: coords.latitude, lng: coords.longitude, title: report.title, location: report.locationName, type: report.type };
-            }).filter(Boolean);
-            webViewRef.current?.postMessage(JSON.stringify({ campusMarkers, reportMarkers }));
+            webViewRef.current?.postMessage(JSON.stringify({ campusMarkers: campusMarkersData, reportMarkers: reportMarkersData }));
           }}
         />
       )}
