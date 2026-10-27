@@ -7,6 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 import { getMyReports, deleteReport } from '../../services/reportService';
 import dayjs from 'dayjs';
@@ -90,14 +91,19 @@ function ReportCard({ report, onPress }) {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 export default function ProfileScreen({ navigation }) {
   const { user, userProfile, logout } = useAuth();
+  const { isOnline } = useNetwork();
   const [myReports, setMyReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   const fetchMyReports = async () => {
     if (!user) return;
+    setFetchError(null);
     // GET dengan access token otomatis dari reportService
     const { data, error } = await getMyReports(user.id);
-    if (!error && data) {
+    if (error) {
+      setFetchError(error.message || 'Gagal memuat laporan.');
+    } else if (data) {
       const mappedData = data.map(d => ({
         ...d,
         locationName: d.location_name,
@@ -132,6 +138,10 @@ export default function ProfileScreen({ navigation }) {
 
   // DELETE: hapus laporan dengan konfirmasi
   const handleDeleteReport = (reportId, title) => {
+    if (!isOnline) {
+      Alert.alert('Tidak Ada Koneksi', 'Anda sedang offline. Hubungkan ke internet untuk menghapus laporan.');
+      return;
+    }
     Alert.alert(
       'Hapus Laporan',
       `Apakah kamu yakin ingin menghapus laporan "${title}"?`,
@@ -143,7 +153,7 @@ export default function ProfileScreen({ navigation }) {
           onPress: async () => {
             const { error } = await deleteReport(reportId);
             if (error) {
-              Alert.alert('Gagal', 'Tidak dapat menghapus laporan: ' + error.message);
+              Alert.alert('Gagal', error.message || 'Tidak dapat menghapus laporan.');
             } else {
               setMyReports(prev => prev.filter(r => r.id !== reportId));
             }
@@ -232,6 +242,25 @@ export default function ProfileScreen({ navigation }) {
 
           {loading ? (
             <ActivityIndicator color={COLORS.primary} style={{ marginTop: SPACING.lg }} />
+          ) : fetchError ? (
+            <View style={styles.emptyReports}>
+              <LinearGradient colors={['#FF453A20', '#FF453A08']} style={styles.emptyIcon}>
+                <Ionicons name="cloud-offline-outline" size={32} color={COLORS.lost} />
+              </LinearGradient>
+              <Text style={[styles.emptyText, { color: COLORS.textSecondary }]}>Gagal memuat laporan</Text>
+              <Text style={[styles.emptyText, { fontSize: 11, color: COLORS.textMuted, textAlign: 'center' }]}>{fetchError}</Text>
+              <TouchableOpacity
+                style={[styles.createReportBtn, { marginTop: SPACING.sm }]}
+                onPress={() => { setLoading(true); fetchMyReports(); }}
+                disabled={!isOnline}
+              >
+                <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.createReportGradient}
+                  start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+                  <Ionicons name="refresh" size={16} color="white" />
+                  <Text style={styles.createReportText}>Coba Lagi</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
           ) : myReports.length === 0 ? (
             <View style={styles.emptyReports}>
               <LinearGradient colors={[COLORS.primary + '20', COLORS.accent + '08']} style={styles.emptyIcon}>

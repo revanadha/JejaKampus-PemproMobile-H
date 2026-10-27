@@ -14,20 +14,32 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, parseAuthError } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, route }) {
   const { login, loginWithGoogle, googleRequest } = useAuth();
-  const [email, setEmail] = useState('');
+  const { isOnline } = useNetwork();
+  const [email, setEmail] = useState(route?.params?.prefillEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
+  React.useEffect(() => {
+    if (route?.params?.prefillEmail) {
+      setEmail(route.params.prefillEmail);
+    }
+  }, [route?.params?.prefillEmail]);
+
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!isOnline) {
+      setError('Tidak ada koneksi internet. Periksa jaringan Anda.');
+      return;
+    }
+    if (!email.trim() || !password) {
       setError('Email dan password wajib diisi.');
       return;
     }
@@ -36,13 +48,7 @@ export default function LoginScreen({ navigation }) {
     try {
       await login(email.trim(), password);
     } catch (e) {
-      const messages = {
-        'auth/user-not-found': 'Akun tidak ditemukan.',
-        'auth/wrong-password': 'Password salah.',
-        'auth/invalid-email': 'Format email tidak valid.',
-        'auth/too-many-requests': 'Terlalu banyak percobaan. Coba lagi nanti.',
-      };
-      setError(messages[e.code] || 'Login gagal. Coba lagi.');
+      setError(e.message || 'Login gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }

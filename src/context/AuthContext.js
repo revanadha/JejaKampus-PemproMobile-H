@@ -4,6 +4,48 @@ import { supabase, USE_MOCK } from '../config/supabase';
 const AuthContext = createContext({});
 export const useAuth = () => useContext(AuthContext);
 
+// ─── Normalisasi error Supabase + network ─────────────────────────────────────
+const isNetworkError = (e) => {
+  const msg = (e?.message || '').toLowerCase();
+  return (
+    e?.name === 'AbortError' ||
+    msg.includes('network request failed') ||
+    msg.includes('failed to fetch') ||
+    msg.includes('networkerror') ||
+    msg.includes('unable to resolve host') ||
+    msg.includes('etimedout')
+  );
+};
+
+export const parseAuthError = (err) => {
+  if (isNetworkError(err)) {
+    return new Error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.');
+  }
+  const msg = (err?.message || err?.error_description || String(err)).toLowerCase();
+  if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
+    return new Error('Email atau password salah.');
+  }
+  if (msg.includes('email not confirmed')) {
+    return new Error('Email belum dikonfirmasi. Matikan "Confirm email" di Supabase Dashboard.');
+  }
+  if (msg.includes('user not found')) {
+    return new Error('Akun tidak ditemukan. Silakan mendaftar terlebih dahulu.');
+  }
+  if (msg.includes('too many requests') || msg.includes('rate limit') || msg.includes('over_email_send_rate_limit')) {
+    return new Error('Terlalu banyak percobaan. Harap tunggu beberapa saat.');
+  }
+  if (msg.includes('already registered') || msg.includes('user already exists')) {
+    return new Error('Email sudah terdaftar. Silakan langsung login.');
+  }
+  if (msg.includes('at least 6 characters') || msg.includes('weak_password')) {
+    return new Error('Password minimal 6 karakter.');
+  }
+  if (msg.includes('valid email') || msg.includes('invalid format')) {
+    return new Error('Format email tidak valid.');
+  }
+  return new Error(err?.message || 'Terjadi kesalahan. Silakan coba lagi.');
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -64,43 +106,64 @@ export const AuthProvider = ({ children }) => {
       }
       return data;
     } catch (e) {
-      console.error('Error fetching profile:', e);
+      if (isNetworkError(e)) {
+        console.warn('[AuthContext] Offline saat fetch profil, skip.');
+      } else {
+        console.error('Error fetching profile:', e);
+      }
       return null;
     }
   };
 
   const register = async ({ email, password, displayName, role }) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: { display_name: displayName },
-      },
-    });
+    const cleanEmail = email.trim().toLowerCase();
+    const name = displayName?.trim() || cleanEmail.split('@')[0];
 
-    if (error) throw error;
+    let data, error;
+    try {
+      ({ data, error } = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: { data: { display_name: name } },
+      }));
+    } catch (e) {
+      throw parseAuthError(e);
+    }
+
+    if (error) throw parseAuthError(error);
 
     if (data?.user) {
       const profileData = {
         id: data.user.id,
-        email,
-        display_name: displayName,
-        role,
+        email: cleanEmail,
+        display_name: name,
+        role: role || 'mahasiswa',
         login_method: 'email',
       };
 
-      const { error: dbError } = await supabase.from('users').insert([profileData]);
-      if (dbError) throw dbError;
+      try {
+        await supabase.from('users').upsert([profileData]);
+      } catch (dbErr) {
+        console.warn('[AuthContext] Note on profile upsert:', dbErr?.message);
+      }
 
-      setUserProfile(profileData);
+      if (data.session) {
+        setUser(data.user);
+        setUserProfile(profileData);
+      }
     }
 
     return data;
   };
 
   const login = async (email, password) => {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    let data, error;
+    try {
+      ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
+    } catch (e) {
+      throw parseAuthError(e);
+    }
+    if (error) throw parseAuthError(error);
     return data;
   };
 

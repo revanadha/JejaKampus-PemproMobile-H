@@ -12,7 +12,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './src/context/AuthContext';
+import { NetworkProvider } from './src/context/NetworkContext';
 import AppNavigator from './src/navigation/AppNavigator';
+import OfflineBanner from './src/components/OfflineBanner';
 import { COLORS } from './src/constants/theme';
 
 export default function App() {
@@ -34,10 +36,14 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <AuthProvider>
-          <StatusBar style="light" backgroundColor={COLORS.background} />
-          <AppNavigator />
-        </AuthProvider>
+        <NetworkProvider>
+          <AuthProvider>
+            <StatusBar style="light" backgroundColor={COLORS.background} />
+            <AppNavigator />
+            {/* Banner global offline - muncul di atas semua layar */}
+            <OfflineBanner />
+          </AuthProvider>
+        </NetworkProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

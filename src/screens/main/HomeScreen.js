@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase, USE_MOCK } from '../../config/supabase';
 import { getReports } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES } from '../../constants/theme';
 import ReportCard from '../../components/ReportCard';
 import FilterModal from '../../components/FilterModal';
@@ -20,9 +21,11 @@ const TYPE_TABS = [
 
 export default function HomeScreen({ navigation }) {
   const { userProfile } = useAuth();
+  const { isOnline } = useNetwork();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
   const [activeType, setActiveType] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,6 +33,7 @@ export default function HomeScreen({ navigation }) {
   const [filters, setFilters] = useState({ location: null, dateRange: null });
 
   const fetchReports = async () => {
+    setFetchError(null);
     // GET dengan access token otomatis dari reportService
     const { data, error } = await getReports({
       type: activeType !== 'all' ? activeType : undefined,
@@ -38,7 +42,9 @@ export default function HomeScreen({ navigation }) {
       limit: 50,
     });
 
-    if (!error && data) {
+    if (error) {
+      setFetchError(error.message || 'Gagal memuat laporan.');
+    } else if (data) {
       const mappedData = data.map(d => ({
         ...d,
         locationId: d.location_id,
@@ -197,11 +203,32 @@ export default function HomeScreen({ navigation }) {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Ionicons name="file-tray-outline" size={60} color={COLORS.textMuted} />
-            <Text style={styles.emptyTitle}>Tidak ada laporan</Text>
-            <Text style={styles.emptySubtitle}>Belum ada laporan yang sesuai filter.</Text>
-          </View>
+          fetchError ? (
+            <View style={styles.empty}>
+              <Ionicons
+                name={isOnline ? 'cloud-offline-outline' : 'wifi-outline'}
+                size={60}
+                color={COLORS.textMuted}
+              />
+              <Text style={styles.emptyTitle}>
+                {isOnline ? 'Gagal memuat data' : 'Tidak ada koneksi'}
+              </Text>
+              <Text style={styles.emptySubtitle}>{fetchError}</Text>
+              <TouchableOpacity
+                style={styles.retryBtn}
+                onPress={() => { setLoading(true); fetchReports(); }}
+                disabled={!isOnline}
+              >
+                <Text style={styles.retryBtnText}>Coba Lagi</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.empty}>
+              <Ionicons name="file-tray-outline" size={60} color={COLORS.textMuted} />
+              <Text style={styles.emptyTitle}>Tidak ada laporan</Text>
+              <Text style={styles.emptySubtitle}>Belum ada laporan yang sesuai filter.</Text>
+            </View>
+          )
         }
       />
 
@@ -265,6 +292,8 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: SPACING['2xl'] },
   emptyTitle: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.lg, color: COLORS.textSecondary, marginTop: SPACING.md },
   emptySubtitle: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.xs },
+  retryBtn: { marginTop: SPACING.lg, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, backgroundColor: COLORS.primary + '20', borderWidth: 1, borderColor: COLORS.primary + '50' },
+  retryBtnText: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primary },
   fab: { position: 'absolute', bottom: 90, right: SPACING.base, borderRadius: RADIUS.full, overflow: 'hidden' },
   fabGradient: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
 });
