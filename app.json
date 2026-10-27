@@ -6,11 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D1117"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.umm.jejak-kampus",
@@ -39,6 +34,14 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "resizeMode": "contain",
+          "backgroundColor": "#0D1117"
+        }
+      ],
+      [
         "expo-image-picker",
         {
           "photosPermission": "JejaKampus perlu akses galeri foto untuk mengunggah foto barang hilang/ditemukan.",
@@ -52,7 +55,10 @@
         }
       ],
       "expo-web-browser",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-font",
+      "expo-status-bar",
+      "expo-splash-screen"
     ],
     "extra": {
       "eas": {
