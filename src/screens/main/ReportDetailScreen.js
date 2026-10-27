@@ -21,6 +21,7 @@ export default function ReportDetailScreen({ route, navigation }) {
   const [showClaimModal, setShowClaimModal] = useState(false);
   const [claimAnswer, setClaimAnswer] = useState('');
   const [claimLoading, setClaimLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const [activeImage, setActiveImage] = useState(0);
 
   useEffect(() => {
@@ -106,6 +107,70 @@ export default function ReportDetailScreen({ route, navigation }) {
         otherUserId: existingClaim.userId,
         otherUserName: existingClaim.userName,
       });
+    } else {
+      openDirectChat();
+    }
+  };
+
+  const openDirectChat = async () => {
+    if (!user) {
+      Alert.alert('Perhatian', 'Silakan login terlebih dahulu untuk mengirim pesan.');
+      return;
+    }
+    if (isOwner) {
+      Alert.alert('Info', 'Ini adalah laporan milik Anda sendiri.');
+      return;
+    }
+    setChatLoading(true);
+    try {
+      // 1. Cek apakah percakapan antara user dan author untuk laporan ini sudah ada
+      const { data: existingChat, error: findError } = await supabase
+        .from('chats')
+        .select('*')
+        .contains('participants', [user.id, report.authorId])
+        .eq('report_id', reportId)
+        .maybeSingle();
+
+      if (existingChat) {
+        navigation.navigate('Chat', {
+          chatId: existingChat.id,
+          reportTitle: report.title,
+          otherUserId: report.authorId,
+          otherUserName: report.authorName || 'Pengguna',
+        });
+        return;
+      }
+
+      // 2. Jika belum ada, buat chat room baru di Supabase
+      const { data: newChat, error: createError } = await supabase
+        .from('chats')
+        .insert([{
+          report_id: reportId,
+          report_title: report.title,
+          participants: [user.id, report.authorId],
+          participant_names: {
+            [user.id]: userProfile?.display_name || 'Pengguna',
+            [report.authorId]: report.authorName || 'Pengguna',
+          },
+          last_message: '',
+          last_message_time: new Date().toISOString(),
+        }])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+
+      navigation.navigate('Chat', {
+        chatId: newChat.id,
+        reportTitle: report.title,
+        otherUserId: report.authorId,
+        otherUserName: report.authorName || 'Pengguna',
+      });
+    } catch (err) {
+      console.error('[openDirectChat] Error:', err);
+      Alert.alert('Gagal Membuka Chat', err.message || 'Terjadi kesalahan saat memulai chat.');
+    } finally {
+      setChatLoading(false);
     }
   };
 
@@ -217,12 +282,38 @@ export default function ReportDetailScreen({ route, navigation }) {
               <Text style={styles.authorName}>{report.authorName || 'Anonim'}</Text>
               <Text style={styles.authorRole}>{report.authorRole || 'Pengguna'} · UMM</Text>
             </View>
-            <View style={styles.reportBadge}>
-              <Ionicons name="flag-outline" size={16} color={COLORS.textMuted} />
-            </View>
+            {!isOwner && (
+              <TouchableOpacity
+                style={styles.directChatBtn}
+                onPress={openDirectChat}
+                disabled={chatLoading}
+                activeOpacity={0.8}
+              >
+                <Ionicons name="chatbubble-ellipses" size={16} color={COLORS.primary} />
+                <Text style={styles.directChatText}>Chat</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </ScrollView>
+
+      {/* Tombol Chat untuk Barang Hilang (Lost Item) */}
+      {!isOwner && report.type === 'lost' && report.status !== 'resolved' && (
+        <View style={styles.bottomBar}>
+          <TouchableOpacity style={styles.chatBtn} onPress={openDirectChat} disabled={chatLoading} activeOpacity={0.85}>
+            <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.actionGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
+              {chatLoading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <>
+                  <Ionicons name="chatbubbles" size={20} color="white" />
+                  <Text style={styles.actionText}>Hubungi Pemilik / Chat</Text>
+                </>
+              )}
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Bottom Action */}
       {!isOwner && report.type === 'found' && report.status !== 'resolved' && (
@@ -363,4 +454,20 @@ const styles = StyleSheet.create({
   submitClaimBtn: { borderRadius: RADIUS.lg, overflow: 'hidden', marginBottom: SPACING.sm },
   cancelBtn: { alignItems: 'center', paddingVertical: SPACING.md },
   cancelText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.base, color: COLORS.textSecondary },
+  directChatBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary + '20',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '50',
+  },
+  directChatText: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.primary,
+  },
 });

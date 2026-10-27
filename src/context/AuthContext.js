@@ -150,6 +150,19 @@ export const AuthProvider = ({ children }) => {
       if (data.session) {
         setUser(data.user);
         setUserProfile(profileData);
+      } else {
+        // Coba auto-login langsung
+        try {
+          const { data: loginData } = await supabase.auth.signInWithPassword({
+            email: cleanEmail,
+            password,
+          });
+          if (loginData?.session) {
+            setUser(loginData.user);
+            setUserProfile(profileData);
+            return loginData;
+          }
+        } catch (_) {}
       }
     }
 

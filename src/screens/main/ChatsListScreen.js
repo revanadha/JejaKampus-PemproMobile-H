@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, TextInput, Animated,
+  ActivityIndicator, TextInput, Animated, Alert,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -134,6 +134,7 @@ export default function ChatsListScreen({ navigation }) {
         
         return {
           id: d.id,
+          otherUserId,
           otherUserName,
           otherUserInitial: initial,
           avatarColor: COLORS.primary,
@@ -184,7 +185,19 @@ export default function ChatsListScreen({ navigation }) {
               {totalUnread > 0 ? `${totalUnread} pesan belum dibaca` : 'Semua pesan terbaca'}
             </Text>
           </View>
-          <TouchableOpacity style={styles.headerBtn}>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => {
+              Alert.alert(
+                'Mulai Chat Baru 💬',
+                'Untuk mulai chat dengan pemilik atau penemu barang, buka detail laporan barang di Beranda lalu tekan tombol Chat.',
+                [
+                  { text: 'Lihat Beranda', onPress: () => navigation.navigate('Home') },
+                  { text: 'Tutup', style: 'cancel' },
+                ]
+              );
+            }}
+          >
             <Ionicons name="create-outline" size={22} color={COLORS.primary} />
           </TouchableOpacity>
         </View>
@@ -219,7 +232,7 @@ export default function ChatsListScreen({ navigation }) {
               onPress={() => navigation.navigate('Chat', {
                 chatId: item.id,
                 reportTitle: item.reportTitle,
-                otherUserId: item.id, // the other user's id isn't saved directly in the mapping but it works for now
+                otherUserId: item.otherUserId || item.id,
                 otherUserName: item.otherUserName,
               })}
             />

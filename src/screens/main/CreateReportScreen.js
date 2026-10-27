@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Image, ActivityIndicator, Alert, Switch, Platform,
+  ScrollView, Image, ActivityIndicator, Alert, Switch, Platform, Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -34,20 +34,69 @@ export default function CreateReportScreen({ navigation }) {
   const [dropOffLocationId, setDropOffLocationId] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showSourceModal, setShowSourceModal] = useState(false);
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
-  const pickImage = async () => {
+  // Opsi 1: Ambil foto menggunakan Kamera (meminta izin akses kamera)
+  const handleTakePhoto = async () => {
+    setShowSourceModal(false);
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Izin Kamera Ditolak',
+        'JejaKampus memerlukan izin akses kamera untuk dapat memotret barang hilang atau temuan.',
+        [{ text: 'Mengerti' }]
+      );
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.7,
+        base64: true,
+        allowsEditing: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImages(prev => [...prev, ...result.assets].slice(0, 4));
+      }
+    } catch (err) {
+      console.error('[handleTakePhoto] Error taking photo:', err);
+      Alert.alert('Gagal Mengambil Foto', 'Terjadi kesalahan saat membuka kamera.');
+    }
+  };
+
+  // Opsi 2: Pilih foto dari Galeri / File
+  const handlePickFromLibrary = async () => {
+    setShowSourceModal(false);
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Izin diperlukan', 'Aplikasi butuh akses galeri foto.'); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.7,
-      base64: true,
-      selectionLimit: 4,
-    });
-    if (!result.canceled) setImages(prev => [...prev, ...result.assets].slice(0, 4));
+    if (status !== 'granted') {
+      Alert.alert(
+        'Izin Galeri Ditolak',
+        'JejaKampus memerlukan izin akses media/file foto untuk memilih gambar barang.',
+        [{ text: 'Mengerti' }]
+      );
+      return;
+    }
+
+    try {
+      const remainingSlots = 4 - images.length;
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.7,
+        base64: true,
+        selectionLimit: remainingSlots,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setImages(prev => [...prev, ...result.assets].slice(0, 4));
+      }
+    } catch (err) {
+      console.error('[handlePickFromLibrary] Error picking image:', err);
+      Alert.alert('Gagal Memilih Foto', 'Terjadi kesalahan saat membuka galeri file.');
+    }
   };
 
   const uploadImages = async () => {
@@ -197,7 +246,7 @@ export default function CreateReportScreen({ navigation }) {
               </View>
             ))}
             {images.length < 4 && (
-              <TouchableOpacity style={styles.addImageBtn} onPress={pickImage}>
+              <TouchableOpacity style={styles.addImageBtn} onPress={() => setShowSourceModal(true)}>
                 <Ionicons name="camera-outline" size={28} color={COLORS.textMuted} />
                 <Text style={styles.addImageText}>Tambah Foto</Text>
                 <Text style={styles.addImageHint}>{images.length}/4</Text>
@@ -339,6 +388,71 @@ export default function CreateReportScreen({ navigation }) {
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
+
+      {/* Modal Pemilihan Sumber Foto (Kamera / Galeri File) */}
+      <Modal
+        visible={showSourceModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSourceModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          {/* Backdrop transparan yang bisa diklik untuk menutup */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setShowSourceModal(false)}
+          />
+
+          {/* Card Dialog Pilihan */}
+          <View style={styles.modalCard}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Tambah Foto Barang</Text>
+            <Text style={styles.modalSubtitle}>Pilih sumber foto yang ingin digunakan</Text>
+
+            {/* Opsi 1: Kamera */}
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleTakePhoto}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.modalOptionIcon, { backgroundColor: COLORS.primary + '20' }]}>
+                <Ionicons name="camera" size={24} color={COLORS.primary} />
+              </View>
+              <View style={styles.modalOptionTextWrapper}>
+                <Text style={styles.modalOptionTitle}>Ambil dari Kamera</Text>
+                <Text style={styles.modalOptionDesc}>Meminta izin kamera dan potret langsung</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            {/* Opsi 2: Galeri / File */}
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handlePickFromLibrary}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.modalOptionIcon, { backgroundColor: COLORS.accent + '20' }]}>
+                <Ionicons name="images" size={24} color={COLORS.accent} />
+              </View>
+              <View style={styles.modalOptionTextWrapper}>
+                <Text style={styles.modalOptionTitle}>Pilih dari File / Galeri</Text>
+                <Text style={styles.modalOptionDesc}>Pilih foto yang tersimpan di perangkat</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+
+            {/* Tombol Batal */}
+            <TouchableOpacity
+              style={styles.modalCancelBtn}
+              onPress={() => setShowSourceModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.modalCancelText}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -400,4 +514,94 @@ const styles = StyleSheet.create({
   submitBtn: { borderRadius: RADIUS.lg, overflow: 'hidden', marginTop: SPACING.md },
   submitGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 },
   submitText: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.md, color: 'white' },
+  // Modal Pemilihan Sumber Foto
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    width: '100%',
+    height: '100%',
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 500,
+    backgroundColor: COLORS.surface,
+    borderTopLeftRadius: RADIUS.xl,
+    borderTopRightRadius: RADIUS.xl,
+    paddingHorizontal: SPACING.xl,
+    paddingTop: SPACING.md,
+    paddingBottom: Platform.OS === 'ios' ? 40 : SPACING.xl,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    zIndex: 20,
+    elevation: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: COLORS.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: SPACING.md,
+  },
+  modalTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: TYPOGRAPHY.sizes.lg,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+    marginBottom: SPACING.lg,
+    marginTop: 2,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surfaceElevated,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  modalOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: SPACING.md,
+  },
+  modalOptionTextWrapper: {
+    flex: 1,
+  },
+  modalOptionTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.base,
+    color: COLORS.textPrimary,
+  },
+  modalOptionDesc: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+  modalCancelBtn: {
+    marginTop: SPACING.xs,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: RADIUS.lg,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  modalCancelText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: TYPOGRAPHY.sizes.base,
+    color: COLORS.textSecondary,
+  },
 });
