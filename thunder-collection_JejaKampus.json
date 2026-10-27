@@ -1,0 +1,473 @@
+{
+  "clientName": "Thunder Client",
+  "collectionName": "JejaKampus Supabase API",
+  "collectionId": "jejakampus-supabase-api",
+  "dateExported": "2026-10-27",
+  "version": "1.2",
+  "folders": [
+    {
+      "containerId": "",
+      "sortNum": 10000,
+      "_id": "auth-folder",
+      "name": "🔑 Auth (Autentikasi)"
+    },
+    {
+      "containerId": "",
+      "sortNum": 20000,
+      "_id": "reports-folder",
+      "name": "📋 Reports (Laporan) — Positive"
+    },
+    {
+      "containerId": "",
+      "sortNum": 30000,
+      "_id": "users-folder",
+      "name": "👤 Users (Profil Pengguna)"
+    },
+    {
+      "containerId": "",
+      "sortNum": 40000,
+      "_id": "storage-folder",
+      "name": "🗂️ Storage"
+    },
+    {
+      "containerId": "",
+      "sortNum": 50000,
+      "_id": "negative-folder",
+      "name": "🚫 Negative Tests (Error Handling)"
+    }
+  ],
+  "requests": [
+    {
+      "containerId": "auth-folder",
+      "sortNum": 10000,
+      "name": "1. Login User (Dapat Token)",
+      "method": "POST",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/auth/v1/token?grant_type=password",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"bayu009@webmail.umm.ac\",\n  \"password\": \"password123\"\n}"
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        },
+        {
+          "type": "res-body",
+          "custom": "access_token",
+          "action": "contains",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "containerId": "auth-folder",
+      "sortNum": 20000,
+      "name": "2. Login Invalid — Negative Test",
+      "method": "POST",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/auth/v1/token?grant_type=password",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"email\": \"salah@email.com\",\n  \"password\": \"passwordsalah\"\n}"
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "400"
+        }
+      ]
+    },
+    {
+      "containerId": "reports-folder",
+      "sortNum": 10000,
+      "name": "1. GET All Reports",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?select=*&order=created_at.desc",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        },
+        {
+          "type": "res-body",
+          "custom": "",
+          "action": "isArray",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "containerId": "reports-folder",
+      "sortNum": 20000,
+      "name": "2. GET Reports Filter type=lost",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?select=id,title,type,status&type=eq.lost&limit=5",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        }
+      ]
+    },
+    {
+      "containerId": "reports-folder",
+      "sortNum": 30000,
+      "name": "3. POST Create Report",
+      "method": "POST",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Prefer",
+          "value": "return=representation"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"title\": \"[TC] Kunci Motor Vario Tertinggal\",\n  \"type\": \"found\",\n  \"description\": \"Ditemukan di meja kantin GKB 3 (Thunder Client test)\",\n  \"category\": \"kunci\",\n  \"location_id\": \"gkb3\",\n  \"location_name\": \"GKB III\",\n  \"status\": \"active\",\n  \"images\": []\n}"
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "200,201"
+        },
+        {
+          "type": "res-body",
+          "custom": "id",
+          "action": "isNotEmpty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "containerId": "reports-folder",
+      "sortNum": 40000,
+      "name": "4. PATCH Update Report Status",
+      "method": "PATCH",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?id=eq.GANTI_DENGAN_ID_REPORT",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        },
+        {
+          "name": "Prefer",
+          "value": "return=representation"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{\n  \"status\": \"resolved\"\n}"
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "200,204"
+        }
+      ]
+    },
+    {
+      "containerId": "reports-folder",
+      "sortNum": 50000,
+      "name": "5. DELETE Report",
+      "method": "DELETE",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?id=eq.GANTI_DENGAN_ID_REPORT",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "200,204"
+        }
+      ]
+    },
+    {
+      "containerId": "users-folder",
+      "sortNum": 10000,
+      "name": "1. GET Users List",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/users?select=*&limit=10",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        },
+        {
+          "type": "res-body",
+          "custom": "",
+          "action": "isArray",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "containerId": "storage-folder",
+      "sortNum": 10000,
+      "name": "1. GET Bucket Reports",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/storage/v1/bucket/reports",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        },
+        {
+          "type": "res-body",
+          "custom": "id",
+          "action": "isNotEmpty",
+          "value": ""
+        },
+        {
+          "type": "res-body",
+          "custom": "name",
+          "action": "isNotEmpty",
+          "value": ""
+        }
+      ]
+    },
+    {
+      "containerId": "storage-folder",
+      "sortNum": 20000,
+      "name": "2. GET Bucket Tidak Ada — Negative Test",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/storage/v1/bucket/bucket-tidak-ada-xyz",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "400,404"
+        }
+      ]
+    },
+    {
+      "containerId": "negative-folder",
+      "sortNum": 10000,
+      "name": "1. Token Tidak Valid → 401/403",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?select=id&limit=1",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "ini.bukan.token.valid"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer ini.bukan.token.valid"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "401,403"
+        }
+      ]
+    },
+    {
+      "containerId": "negative-folder",
+      "sortNum": 20000,
+      "name": "2. Tabel Tidak Ada → 404",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/tabel_yang_tidak_ada",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "404"
+        }
+      ]
+    },
+    {
+      "containerId": "negative-folder",
+      "sortNum": 30000,
+      "name": "3. POST Body Kosong → 400/422",
+      "method": "POST",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Content-Type",
+          "value": "application/json"
+        }
+      ],
+      "body": {
+        "type": "json",
+        "raw": "{}"
+      },
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "in",
+          "value": "400,409,422"
+        }
+      ]
+    },
+    {
+      "containerId": "negative-folder",
+      "sortNum": 40000,
+      "name": "4. GET ID Tidak Ada → Array Kosong",
+      "method": "GET",
+      "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?id=eq.id-yang-tidak-ada-sama-sekali&select=id",
+      "headers": [
+        {
+          "name": "apikey",
+          "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        },
+        {
+          "name": "Authorization",
+          "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+        }
+      ],
+      "tests": [
+        {
+          "type": "res-code",
+          "custom": "",
+          "action": "equal",
+          "value": "200"
+        },
+        {
+          "type": "res-body",
+          "custom": "",
+          "action": "isArray",
+          "value": ""
+        }
+      ]
+    }
+  ]
+}

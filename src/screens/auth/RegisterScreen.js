@@ -7,6 +7,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 const ROLES = [
@@ -16,52 +17,54 @@ const ROLES = [
 ];
 
 export default function RegisterScreen({ navigation }) {
-  const { register, loginWithGoogle, googleRequest } = useAuth();
-  const [form, setForm] = useState({ displayName: '', email: '', password: '', confirmPassword: '', role: 'mahasiswa' });
+  const { register } = useAuth();
+  const { isOnline } = useNetwork();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
-
   const handleRegister = async () => {
-    if (!form.displayName || !form.email || !form.password) {
-      setError('Nama, email, dan password wajib diisi.'); return;
+    if (!isOnline) {
+      setError('Tidak ada koneksi internet. Periksa jaringan Anda.');
+      return;
     }
-    if (form.password.length < 6) {
-      setError('Password minimal 6 karakter.'); return;
+    if (!email.trim() || !password) {
+      setError('Email dan password wajib diisi.');
+      return;
     }
-    if (form.password !== form.confirmPassword) {
-      setError('Password tidak cocok.'); return;
+    if (password.length < 6) {
+      setError('Password minimal 6 karakter.');
+      return;
     }
     setError('');
+    setSuccess('');
     setLoading(true);
+
     try {
-      await register(form);
-      setSuccess('Akun berhasil dibuat! Cek email Anda untuk verifikasi lalu login.');
+      const res = await register({ email: email.trim(), password });
+      
+      // Jika auto-confirm aktif dan session langsung terbentuk
+      if (res?.data?.session) {
+        setSuccess('Pendaftaran berhasil! Mengalihkan ke aplikasi...');
+      } else {
+        Alert.alert(
+          'Pendaftaran Berhasil 🎉',
+          'Akun Anda sudah dibuat. Silakan login menggunakan email & password Anda.',
+          [
+            {
+              text: 'Masuk Sekarang',
+              onPress: () => navigation.navigate('Login', { prefillEmail: email.trim() }),
+            },
+          ]
+        );
+      }
     } catch (e) {
-      const messages = {
-        'auth/email-already-in-use': 'Email sudah digunakan.',
-        'auth/invalid-email': 'Format email tidak valid.',
-        'auth/weak-password': 'Password terlalu lemah.',
-      };
-      setError(messages[e.code] || 'Registrasi gagal. Coba lagi.');
+      setError(e.message || 'Registrasi gagal. Silakan coba lagi.');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleGoogleRegister = async () => {
-    setGoogleLoading(true);
-    setError('');
-    try {
-      await loginWithGoogle();
-    } catch (e) {
-      setError('Daftar dengan Google gagal. Coba lagi.');
-    } finally {
-      setGoogleLoading(false);
     }
   };
 
@@ -77,8 +80,8 @@ export default function RegisterScreen({ navigation }) {
           <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.logoCircle} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
             <Ionicons name="person-add" size={30} color="white" />
           </LinearGradient>
-          <Text style={styles.title}>Buat Akun</Text>
-          <Text style={styles.subtitle}>Bergabung dengan komunitas JejaKampus UMM</Text>
+          <Text style={styles.title}>Daftar Akun</Text>
+          <Text style={styles.subtitle}>Cukup masukkan email & password untuk mendaftar</Text>
         </View>
 
         <View style={styles.card}>
@@ -96,36 +99,49 @@ export default function RegisterScreen({ navigation }) {
             </View>
           ) : null}
 
-          {/* Role Selector */}
-          <Text style={styles.label}>Saya adalah</Text>
-          <View style={styles.roleRow}>
-            {ROLES.map(role => (
-              <TouchableOpacity
-                key={role.id}
-                style={[styles.roleBtn, form.role === role.id && styles.roleBtnActive]}
-                onPress={() => update('role', role.id)}
-              >
-                <Ionicons name={role.icon} size={18} color={form.role === role.id ? 'white' : COLORS.textSecondary} />
-                <Text style={[styles.roleBtnText, form.role === role.id && styles.roleBtnTextActive]}>
-                  {role.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <InputField label="Nama Lengkap" icon="person-outline" placeholder="John Doe" value={form.displayName} onChangeText={v => update('displayName', v)} />
-          <InputField label="Email" icon="mail-outline" placeholder="email@gmail.com" value={form.email} onChangeText={v => update('email', v)} keyboardType="email-address" autoCapitalize="none" />
-
-          <InputField label="Password" icon="lock-closed-outline" placeholder="Min. 6 karakter" value={form.password} onChangeText={v => update('password', v)} secureTextEntry={!showPassword}
-            rightIcon={<TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
-              <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={20} color={COLORS.textSecondary} />
-            </TouchableOpacity>}
+          <InputField
+            label="Email"
+            icon="mail-outline"
+            placeholder="contoh@gmail.com"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
-          <InputField label="Konfirmasi Password" icon="lock-closed-outline" placeholder="Ulangi password" value={form.confirmPassword} onChangeText={v => update('confirmPassword', v)} secureTextEntry />
 
-          <TouchableOpacity style={styles.registerBtn} onPress={handleRegister} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.btnGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}>
-              {loading ? <ActivityIndicator color="white" /> : (
+          <InputField
+            label="Password"
+            icon="lock-closed-outline"
+            placeholder="Minimal 6 karakter"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry={!showPassword}
+            rightIcon={
+              <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={20}
+                  color={COLORS.textSecondary}
+                />
+              </TouchableOpacity>
+            }
+          />
+
+          <TouchableOpacity
+            style={styles.registerBtn}
+            onPress={handleRegister}
+            disabled={loading}
+            activeOpacity={0.85}
+          >
+            <LinearGradient
+              colors={[COLORS.primary, COLORS.accent]}
+              style={styles.btnGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
                 <>
                   <Text style={styles.btnText}>Daftar Sekarang</Text>
                   <Ionicons name="arrow-forward" size={18} color="white" />
@@ -134,33 +150,9 @@ export default function RegisterScreen({ navigation }) {
             </LinearGradient>
           </TouchableOpacity>
 
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>atau daftar dengan</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={handleGoogleRegister}
-            disabled={googleLoading || !googleRequest}
-            activeOpacity={0.85}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={COLORS.textPrimary} />
-            ) : (
-              <>
-                <View style={styles.googleIcon}>
-                  <Text style={styles.googleIconText}>G</Text>
-                </View>
-                <Text style={styles.googleBtnText}>Daftar dengan Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity style={styles.loginLink} onPress={() => navigation.navigate('Login')}>
             <Text style={styles.loginLinkText}>
-              Sudah punya akun? <Text style={styles.loginLinkHighlight}>Masuk</Text>
+              Sudah punya akun? <Text style={styles.loginLinkHighlight}>Masuk di sini</Text>
             </Text>
           </TouchableOpacity>
         </View>

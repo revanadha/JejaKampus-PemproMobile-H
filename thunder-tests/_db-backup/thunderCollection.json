@@ -1,0 +1,57 @@
+[
+  {
+    "_id": "c1f7a0b3-1111-2222-3333-444455556666",
+    "colName": "JejaKampus-API",
+    "created": "2026-10-13T07:40:00.000Z",
+    "sortNum": 10000,
+    "folders": [],
+    "requests": [
+      {
+        "_id": "req-get-reports",
+        "colId": "c1f7a0b3-1111-2222-3333-444455556666",
+        "containerId": "",
+        "name": "Get Reports",
+        "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/reports?select=*&limit=5",
+        "method": "GET",
+        "sortNum": 10000,
+        "created": "2026-10-13T07:40:00.000Z",
+        "modified": "2026-10-13T07:40:00.000Z",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+          }
+        ],
+        "params": [],
+        "tests": []
+      },
+      {
+        "_id": "req-get-users",
+        "colId": "c1f7a0b3-1111-2222-3333-444455556666",
+        "containerId": "",
+        "name": "Get Users",
+        "url": "https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/users?select=*&limit=5",
+        "method": "GET",
+        "sortNum": 20000,
+        "created": "2026-10-13T07:40:00.000Z",
+        "modified": "2026-10-13T07:40:00.000Z",
+        "headers": [
+          {
+            "name": "apikey",
+            "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+          },
+          {
+            "name": "Authorization",
+            "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI"
+          }
+        ],
+        "params": [],
+        "tests": []
+      }
+    ]
+  }
+]

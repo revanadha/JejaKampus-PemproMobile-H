@@ -9,10 +9,14 @@ import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../config/supabase';
 import { createReport } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
+import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } from '../../constants/theme';
+
+import { base64ToArrayBuffer } from '../../utils/storageHelper';
 
 export default function CreateReportScreen({ navigation }) {
   const { user, userProfile } = useAuth();
+  const { isOnline } = useNetwork();
   const [type, setType] = useState('lost');
   const [form, setForm] = useState({
     title: '',
@@ -40,6 +44,7 @@ export default function CreateReportScreen({ navigation }) {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.7,
+      base64: true,
       selectionLimit: 4,
     });
     if (!result.canceled) setImages(prev => [...prev, ...result.assets].slice(0, 4));
@@ -48,18 +53,28 @@ export default function CreateReportScreen({ navigation }) {
   const uploadImages = async () => {
     const urls = [];
     for (const img of images) {
-      const response = await fetch(img.uri);
-      const blob = await response.blob();
       const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.jpg`;
-      const filePath = `${user.id}/${filename}`;
+      const filePath = `${user?.id || 'public'}/${filename}`;
       
+      let uploadBody;
+      if (img.base64) {
+        uploadBody = base64ToArrayBuffer(img.base64);
+      } else {
+        const response = await fetch(img.uri);
+        uploadBody = await response.blob();
+      }
+
       const { data, error } = await supabase.storage
         .from('reports')
-        .upload(filePath, blob, {
+        .upload(filePath, uploadBody, {
           contentType: 'image/jpeg',
+          upsert: true,
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('[uploadImages] Supabase upload error:', error);
+        throw error;
+      }
       
       const { data: { publicUrl } } = supabase.storage
         .from('reports')
@@ -71,6 +86,14 @@ export default function CreateReportScreen({ navigation }) {
   };
 
   const handleSubmit = async () => {
+    if (!isOnline) {
+      Alert.alert(
+        'Tidak Ada Koneksi',
+        'Anda sedang offline. Hubungkan ke internet untuk membuat laporan.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     if (!form.title || !form.category || !form.locationId) {
       Alert.alert('Lengkapi Data', 'Judul, kategori, dan lokasi wajib diisi.'); return;
     }
@@ -113,7 +136,15 @@ export default function CreateReportScreen({ navigation }) {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (e) {
-      Alert.alert('Error', 'Gagal membuat laporan: ' + e.message);
+      const msg = e.message || 'Terjadi kesalahan.';
+      const isOfflineErr = msg.toLowerCase().includes('koneksi') || msg.toLowerCase().includes('network');
+      Alert.alert(
+        isOfflineErr ? 'Koneksi Terputus' : 'Gagal Membuat Laporan',
+        isOfflineErr
+          ? 'Koneksi internet terputus saat mengunggah. Coba lagi saat jaringan stabil.'
+          : 'Gagal membuat laporan: ' + msg,
+        [{ text: 'OK' }]
+      );
     } finally {
       setLoading(false);
     }
