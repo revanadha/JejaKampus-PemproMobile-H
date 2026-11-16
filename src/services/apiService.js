@@ -9,11 +9,18 @@
  * - Error normalization dengan kode error yang konsisten
  */
 
-import { supabase } from '../config/supabase';
+import {
+  supabase,
+  supabaseUrl as importedUrl,
+  supabaseAnonKey as importedKey,
+} from '../config/supabase';
 
-const SUPABASE_URL = 'https://zklprhlbxjlvrtvucyyx.supabase.co';
-const SUPABASE_ANON_KEY =
+const DEFAULT_SUPABASE_URL = 'https://zklprhlbxjlvrtvucyyx.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InprbHByaGxieGpsdnJ0dnVjeXl4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEyNjYyNjgsImV4cCI6MjEwNjg0MjI2OH0.8bd5GpfCk3aVYq6Bq3HIs8xWwEswVJPlU4pD0yd4HHI';
+
+const SUPABASE_URL = importedUrl || DEFAULT_SUPABASE_URL;
+const SUPABASE_ANON_KEY = importedKey || DEFAULT_SUPABASE_ANON_KEY;
 
 // ─── Error Codes ──────────────────────────────────────────────────────────────
 export const ERROR_CODES = {
@@ -73,9 +80,12 @@ const isNetworkError = (e) => {
     e.name === 'AbortError' ||
     msg.includes('network request failed') ||
     msg.includes('failed to fetch') ||
+    msg.includes('fetch failed') ||
     msg.includes('networkerror') ||
     msg.includes('network error') ||
     msg.includes('unable to resolve host') ||
+    msg.includes('could not be found') ||
+    msg.includes('enotfound') ||
     msg.includes('etimedout') ||
     msg.includes('econnrefused') ||
     msg.includes('connection refused')

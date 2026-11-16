@@ -38,7 +38,7 @@ export default function App() {
       <SafeAreaProvider>
         <NetworkProvider>
           <AuthProvider>
-            <StatusBar style="light" backgroundColor={COLORS.background} />
+            <StatusBar style="dark" backgroundColor={COLORS.background} />
             <AppNavigator />
             {/* Banner global offline - muncul di atas semua layar */}
             <OfflineBanner />

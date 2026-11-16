@@ -19,13 +19,12 @@ import { useNetwork } from '../../context/NetworkContext';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 export default function LoginScreen({ navigation, route }) {
-  const { login, loginWithGoogle, googleRequest } = useAuth();
+  const { login } = useAuth();
   const { isOnline } = useNetwork();
   const [email, setEmail] = useState(route?.params?.prefillEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   React.useEffect(() => {
@@ -54,39 +53,22 @@ export default function LoginScreen({ navigation, route }) {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true);
-    setError('');
-    try {
-      await loginWithGoogle();
-    } catch (e) {
-      setError('Login dengan Google gagal. Coba lagi.');
-    } finally {
-      setGoogleLoading(false);
-    }
-  };
-
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
       <LinearGradient
-        colors={[COLORS.background, '#0D1F35']}
+        colors={[COLORS.background, COLORS.headerBackground]}
         style={StyleSheet.absoluteFillObject}
       />
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Logo Area */}
+        {/* Logo — text mark, not a generated icon (R-23) */}
         <View style={styles.logoArea}>
-          <LinearGradient
-            colors={[COLORS.primary, COLORS.accent]}
-            style={styles.logoCircle}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <Ionicons name="search" size={36} color="white" />
-          </LinearGradient>
+          <View style={styles.logoMark}>
+            <Text style={styles.logoLetter}>J</Text>
+          </View>
           <Text style={styles.appName}>JejaKampus</Text>
           <Text style={styles.tagline}>Temukan yang Hilang, Kembalikan yang Tersesat</Text>
         </View>
@@ -141,9 +123,7 @@ export default function LoginScreen({ navigation, route }) {
             </View>
           </View>
 
-          <TouchableOpacity style={styles.forgotBtn}>
-            <Text style={styles.forgotText}>Lupa Password?</Text>
-          </TouchableOpacity>
+          {/* Dead control removed (R-26): no forgot-password flow exists */}
 
           <TouchableOpacity
             style={styles.loginBtn}
@@ -151,45 +131,10 @@ export default function LoginScreen({ navigation, route }) {
             disabled={loading}
             activeOpacity={0.85}
           >
-            <LinearGradient
-              colors={[COLORS.primary, COLORS.accent]}
-              style={styles.loginGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <>
-                  <Text style={styles.loginBtnText}>Masuk</Text>
-                  <Ionicons name="arrow-forward" size={18} color="white" />
-                </>
-              )}
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>atau</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Tombol Login Google */}
-          <TouchableOpacity
-            style={styles.googleBtn}
-            onPress={handleGoogleLogin}
-            disabled={googleLoading || !googleRequest}
-            activeOpacity={0.85}
-          >
-            {googleLoading ? (
-              <ActivityIndicator color={COLORS.textPrimary} />
+            {loading ? (
+              <ActivityIndicator color="white" />
             ) : (
-              <>
-                <View style={styles.googleIcon}>
-                  <Text style={styles.googleIconText}>G</Text>
-                </View>
-                <Text style={styles.googleBtnText}>Masuk dengan Google</Text>
-              </>
+              <Text style={styles.loginBtnText}>Masuk</Text>
             )}
           </TouchableOpacity>
 
@@ -213,10 +158,21 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
   scroll: { flexGrow: 1, paddingHorizontal: SPACING.base, paddingTop: 60, paddingBottom: 40 },
   logoArea: { alignItems: 'center', marginBottom: SPACING['2xl'] },
-  logoCircle: {
-    width: 80, height: 80, borderRadius: 24,
-    alignItems: 'center', justifyContent: 'center',
+  logoMark: {
+    width: 64,
+    height: 64,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: SPACING.md,
+  },
+  logoLetter: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 28,
+    color: COLORS.primary,
   },
   appName: {
     fontFamily: TYPOGRAPHY.fontFamily.bold,
@@ -279,56 +235,32 @@ const styles = StyleSheet.create({
     fontFamily: TYPOGRAPHY.fontFamily.regular,
     fontSize: TYPOGRAPHY.sizes.base,
   },
-  forgotBtn: { alignSelf: 'flex-end', marginBottom: SPACING.base },
-  forgotText: {
-    fontFamily: TYPOGRAPHY.fontFamily.medium,
-    fontSize: TYPOGRAPHY.sizes.sm,
-    color: COLORS.primary,
-  },
-  loginBtn: { borderRadius: RADIUS.lg, overflow: 'hidden', marginBottom: SPACING.base },
-  loginGradient: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    paddingVertical: 15, gap: 8,
+  loginBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: RADIUS.lg,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: SPACING.sm,
+    marginBottom: SPACING.lg,
   },
   loginBtnText: {
     fontFamily: TYPOGRAPHY.fontFamily.semiBold,
-    fontSize: TYPOGRAPHY.sizes.md, color: 'white',
+    fontSize: TYPOGRAPHY.sizes.base,
+    color: 'white',
   },
-  divider: { flexDirection: 'row', alignItems: 'center', marginVertical: SPACING.base },
-  dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
-  dividerText: {
-    fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textMuted,
-    marginHorizontal: SPACING.md,
-  },
-  googleBtn: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    gap: 10, paddingVertical: 14,
-    backgroundColor: COLORS.surfaceElevated,
-    borderRadius: RADIUS.lg, borderWidth: 1,
-    borderColor: COLORS.border, marginBottom: SPACING.base,
-  },
-  googleIcon: {
-    width: 24, height: 24, borderRadius: 12,
-    backgroundColor: 'white', alignItems: 'center', justifyContent: 'center',
-  },
-  googleIconText: {
-    fontFamily: TYPOGRAPHY.fontFamily.bold,
-    fontSize: 14, color: '#4285F4',
-  },
-  googleBtnText: {
-    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
-    fontSize: TYPOGRAPHY.sizes.md, color: COLORS.textPrimary,
-  },
-  registerBtn: { alignItems: 'center' },
+  registerBtn: { alignItems: 'center', paddingVertical: SPACING.xs },
   registerText: {
     fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
   },
   registerLink: { color: COLORS.primary, fontFamily: TYPOGRAPHY.fontFamily.semiBold },
   footer: {
-    textAlign: 'center', marginTop: SPACING.xl,
+    textAlign: 'center',
+    marginTop: SPACING.xl,
     fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textMuted,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textMuted,
   },
 });

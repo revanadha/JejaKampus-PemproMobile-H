@@ -1,4 +1,4 @@
-﻿/**
+/**
  * OfflineBanner.js
  * Banner global yang muncul di atas layar saat perangkat offline.
  * Menampilkan tombol "Coba Lagi" dan animasi masuk/keluar.
@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 9999,
-    backgroundColor: '#1C2128',
+    backgroundColor: COLORS.surfaceCard,
     borderBottomWidth: 1,
     borderBottomColor: '#FFD60A40',
     paddingTop: 44, // Safe area top

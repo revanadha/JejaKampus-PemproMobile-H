@@ -176,7 +176,7 @@ export default function ChatsListScreen({ navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.header}>
+      <LinearGradient colors={[COLORS.headerBackground, COLORS.background]} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.title}>Pesan</Text>

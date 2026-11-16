@@ -1,8 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
-  View, Text, FlatList, StyleSheet, TouchableOpacity, Animated,
+  View, Text, FlatList, StyleSheet, TouchableOpacity, Animated, Platform, Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 import dayjs from 'dayjs';
@@ -11,105 +10,72 @@ import 'dayjs/locale/id';
 dayjs.extend(relativeTime);
 dayjs.locale('id');
 
-// ─── Data Dummy Notifikasi ───────────────────────────────────────────────────
+// ─── Data Notifikasi Sesuai Desain Referensi ──────────────────────────────────
 const DUMMY_NOTIFICATIONS = [
   {
     id: 'n1',
     type: 'match',
-    icon: 'checkmark-circle',
-    iconColor: COLORS.found,
-    bgColor: COLORS.found + '20',
-    title: 'Barang Kamu Ditemukan! 🎉',
-    body: 'Ahmad Fauzi melaporkan menemukan Dompet Hitam yang mungkin milikmu di GKB 2. Segera cek dan verifikasi.',
-    time: dayjs().subtract(10, 'minute').toDate(),
+    icon: 'sparkles',
+    iconColor: '#F59E0B',
+    bgColor: '#FFFBEB',
+    title: 'AI Match Ditemukan - 96%',
+    body: 'Kabar baik! Kemungkinan kecocokan untuk AirPods Pro kamu ditemukan hanya berjarak 400m dari lokasi terakhir.',
+    timeText: '2m lalu',
+    time: dayjs().subtract(2, 'minute').toDate(),
     isRead: false,
-    action: 'Lihat Detail',
   },
   {
     id: 'n2',
     type: 'chat',
     icon: 'chatbubble-ellipses',
-    iconColor: COLORS.primary,
-    bgColor: COLORS.primary + '20',
-    title: 'Pesan Baru dari Siti Rahma',
-    body: 'Iya kak, nanti saya cek dulu ya spesifikasinya. Bisa foto serialnya?',
-    time: dayjs().subtract(1, 'hour').toDate(),
+    iconColor: '#8B5CF6',
+    bgColor: '#F5F3FF',
+    title: 'Priya Mengirimkan Pesan',
+    body: 'Iya kak, barangnya masih aman di saya! Kapan dan di mana kira-kira kita bisa ketemuan?',
+    timeText: '12m lalu',
+    time: dayjs().subtract(12, 'minute').toDate(),
     isRead: false,
-    action: 'Balas',
   },
   {
     id: 'n3',
-    type: 'status',
-    icon: 'refresh-circle',
-    iconColor: COLORS.pending,
-    bgColor: COLORS.pending + '20',
-    title: 'Status Laporan Diperbarui',
-    body: 'Laporan "Kunci Motor Honda Beat" kamu telah diverifikasi oleh admin dan sedang diproses.',
-    time: dayjs().subtract(3, 'hour').toDate(),
+    type: 'claim',
+    icon: 'qr-code',
+    iconColor: '#6366F1',
+    bgColor: '#EEF2FF',
+    title: 'QR Tag Barang Kamu Dipindai',
+    body: 'QR Tag Tas Ransel kamu baru saja dipindai di dekat Perpustakaan Pusat. Ketuk untuk melihat posisi.',
+    timeText: '1j lalu',
+    time: dayjs().subtract(1, 'hour').toDate(),
     isRead: true,
-    action: null,
   },
   {
     id: 'n4',
-    type: 'claim',
-    icon: 'hand-left',
-    iconColor: COLORS.accent,
-    bgColor: COLORS.accent + '20',
-    title: 'Klaim Baru pada Laporanmu',
-    body: 'Budi Santoso mengklaim bahwa "Earphone Sony Warna Putih" yang kamu laporkan adalah miliknya.',
-    time: dayjs().subtract(5, 'hour').toDate(),
+    type: 'reward',
+    icon: 'gift',
+    iconColor: '#D97706',
+    bgColor: '#FEF3C7',
+    title: 'Reward Diterima',
+    body: 'Selamat! Kamu menerima apresiasi atas keberhasilan mengembalikan AirPods Pro ke pemiliknya.',
+    timeText: '1h lalu',
+    time: dayjs().subtract(1, 'day').toDate(),
     isRead: true,
-    action: 'Verifikasi',
   },
   {
     id: 'n5',
-    type: 'match',
-    icon: 'sparkles',
-    iconColor: '#FF9F0A',
-    bgColor: '#FF9F0A20',
-    title: 'Potensi Kecocokan Ditemukan',
-    body: 'Sistem menemukan laporan yang mungkin cocok dengan "Laptop Asus Warna Abu" yang kamu laporkan hilang.',
-    time: dayjs().subtract(1, 'day').toDate(),
-    isRead: true,
-    action: 'Cek Sekarang',
-  },
-  {
-    id: 'n6',
-    type: 'info',
-    icon: 'information-circle',
-    iconColor: COLORS.textSecondary,
-    bgColor: COLORS.surfaceElevated,
-    title: 'Tips Keamanan Barang di Kampus',
-    body: 'Jangan lupa selalu simpan KTM dan dompet di tempat aman. Laporan kehilangan di area kantin meningkat minggu ini.',
+    type: 'security',
+    icon: 'shield-checkmark',
+    iconColor: '#EF4444',
+    bgColor: '#FEF2F2',
+    title: 'Peringatan Keamanan',
+    body: 'Login perangkat baru terdeteksi pada akun Anda melalui Safari di macOS.',
+    timeText: '2h lalu',
     time: dayjs().subtract(2, 'day').toDate(),
     isRead: true,
-    action: null,
-  },
-  {
-    id: 'n7',
-    type: 'resolved',
-    icon: 'trophy',
-    iconColor: '#FFD60A',
-    bgColor: '#FFD60A20',
-    title: 'Laporan Berhasil Diselesaikan! 🏆',
-    body: 'Laporan "KTM Hilang Area Kantin" telah ditandai selesai. Terima kasih telah menggunakan JejaKampus!',
-    time: dayjs().subtract(3, 'day').toDate(),
-    isRead: true,
-    action: null,
   },
 ];
 
-// ─── Filter Tabs ─────────────────────────────────────────────────────────────
-const FILTERS = [
-  { key: 'all', label: 'Semua' },
-  { key: 'unread', label: 'Belum Dibaca' },
-  { key: 'match', label: 'Kecocokan' },
-  { key: 'chat', label: 'Pesan' },
-  { key: 'claim', label: 'Klaim' },
-];
-
-// ─── Notification Item ───────────────────────────────────────────────────────
-function NotifItem({ item, onPress, onMarkRead }) {
+// ─── Notification Item (Card berlatar putih dengan icon bulat tematik) ───────
+function NotifCard({ item, onPress }) {
   const scale = useRef(new Animated.Value(1)).current;
   const pressIn = () => Animated.spring(scale, { toValue: 0.98, useNativeDriver: true }).start();
   const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
@@ -117,62 +83,39 @@ function NotifItem({ item, onPress, onMarkRead }) {
   return (
     <Animated.View style={[{ transform: [{ scale }] }]}>
       <TouchableOpacity
-        style={[styles.notifItem, !item.isRead && styles.notifItemUnread]}
+        style={[styles.notifCard, !item.isRead && styles.notifCardUnread]}
         onPress={() => onPress(item)}
         onPressIn={pressIn}
         onPressOut={pressOut}
-        activeOpacity={1}
+        activeOpacity={0.9}
       >
-        {/* Unread indicator */}
-        {!item.isRead && <View style={styles.unreadDot} />}
-
-        {/* Icon */}
-        <View style={[styles.iconWrap, { backgroundColor: item.bgColor }]}>
-          <Ionicons name={item.icon} size={24} color={item.iconColor} />
+        {/* Left Circular Icon Chip */}
+        <View style={[styles.iconChip, { backgroundColor: item.bgColor }]}>
+          <Ionicons name={item.icon} size={22} color={item.iconColor} />
         </View>
 
-        {/* Content */}
-        <View style={styles.notifContent}>
-          <View style={styles.notifHeader}>
-            <Text style={[styles.notifTitle, !item.isRead && styles.notifTitleUnread]}>
+        {/* Content Column */}
+        <View style={styles.contentWrap}>
+          <View style={styles.topRow}>
+            <Text style={[styles.cardTitle, !item.isRead && styles.cardTitleBold]} numberOfLines={1}>
               {item.title}
             </Text>
-            <Text style={styles.notifTime}>{dayjs(item.time).fromNow()}</Text>
+            <Text style={styles.cardTime}>{item.timeText || dayjs(item.time).fromNow()}</Text>
           </View>
-          <Text style={styles.notifBody} numberOfLines={2}>{item.body}</Text>
-          {item.action && (
-            <TouchableOpacity
-              style={styles.actionBtn}
-              onPress={() => onPress(item)}
-            >
-              <LinearGradient
-                colors={[COLORS.primary, COLORS.accent]}
-                style={styles.actionBtnGradient}
-                start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-              >
-                <Text style={styles.actionBtnText}>{item.action}</Text>
-                <Ionicons name="arrow-forward" size={12} color="white" />
-              </LinearGradient>
-            </TouchableOpacity>
-          )}
+          <Text style={styles.cardBody} numberOfLines={3}>
+            {item.body}
+          </Text>
         </View>
       </TouchableOpacity>
     </Animated.View>
   );
 }
 
-// ─── Main Screen ─────────────────────────────────────────────────────────────
+// ─── Notifications Screen ───────────────────────────────────────────────────
 export default function NotificationsScreen({ navigation }) {
   const [notifications, setNotifications] = useState(DUMMY_NOTIFICATIONS);
-  const [activeFilter, setActiveFilter] = useState('all');
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
-
-  const filtered = notifications.filter(n => {
-    if (activeFilter === 'all') return true;
-    if (activeFilter === 'unread') return !n.isRead;
-    return n.type === activeFilter;
-  });
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
@@ -180,83 +123,64 @@ export default function NotificationsScreen({ navigation }) {
 
   const handlePress = (item) => {
     setNotifications(prev => prev.map(n => n.id === item.id ? { ...n, isRead: true } : n));
-    // TODO: navigate ke layar yang sesuai berdasarkan tipe notifikasi
+    if (item.type === 'chat') {
+      navigation.navigate('Chats');
+    }
+  };
+
+  const handleQrPress = () => {
+    Alert.alert('Scanner QR Tag', 'Fitur pemindai QR Tag JejaKampus untuk cek barang temuan.');
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.header}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.title}>Notifikasi</Text>
-            <Text style={styles.subtitle}>
-              {unreadCount > 0 ? `${unreadCount} notifikasi baru` : 'Semua sudah dibaca'}
-            </Text>
-          </View>
-          {unreadCount > 0 && (
-            <TouchableOpacity style={styles.markAllBtn} onPress={markAllRead}>
-              <Ionicons name="checkmark-done-outline" size={14} color={COLORS.primary} />
-              <Text style={styles.markAllText}>Baca Semua</Text>
-            </TouchableOpacity>
-          )}
+      {/* Reference Screen 2 Top Header */}
+      <View style={styles.header}>
+        <TouchableOpacity
+          style={styles.circleBtn}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={22} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+
+        <Text style={styles.headerTitle}>Notifications</Text>
+
+        <TouchableOpacity
+          style={styles.circleBtn}
+          onPress={handleQrPress}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="qr-code-outline" size={20} color={COLORS.textPrimary} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Unread banner / Mark read action */}
+      {unreadCount > 0 && (
+        <View style={styles.unreadActionRow}>
+          <Text style={styles.unreadCountBadge}>{unreadCount} Belum Dibaca</Text>
+          <TouchableOpacity onPress={markAllRead} activeOpacity={0.7}>
+            <Text style={styles.markReadText}>Tandai semua dibaca</Text>
+          </TouchableOpacity>
         </View>
+      )}
 
-        {/* Filter Tabs */}
-        <FlatList
-          data={FILTERS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={f => f.key}
-          contentContainerStyle={{ gap: SPACING.sm }}
-          renderItem={({ item: filter }) => {
-            const isActive = activeFilter === filter.key;
-            return (
-              <TouchableOpacity
-                onPress={() => setActiveFilter(filter.key)}
-                style={[styles.filterTab, isActive && styles.filterTabActive]}
-              >
-                {isActive ? (
-                  <LinearGradient
-                    colors={[COLORS.primary, COLORS.accent]}
-                    style={styles.filterTabGradient}
-                    start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
-                  >
-                    <Text style={[styles.filterTabText, styles.filterTabTextActive]}>
-                      {filter.label}
-                    </Text>
-                  </LinearGradient>
-                ) : (
-                  <Text style={styles.filterTabText}>{filter.label}</Text>
-                )}
-              </TouchableOpacity>
-            );
-          }}
-        />
-      </LinearGradient>
-
-      {/* List */}
+      {/* Notifications Cards Feed */}
       <FlatList
-        data={filtered}
+        data={notifications}
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <NotifItem item={item} onPress={handlePress} />
+          <NotifCard item={item} onPress={handlePress} />
         )}
-        contentContainerStyle={{ paddingBottom: 120, paddingTop: SPACING.sm }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <LinearGradient
-              colors={[COLORS.primary + '20', COLORS.accent + '10']}
-              style={styles.emptyIcon}
-            >
-              <Ionicons name="notifications-off-outline" size={44} color={COLORS.primary} />
-            </LinearGradient>
+          <View style={styles.emptyWrap}>
+            <View style={styles.emptyIconWrap}>
+              <Ionicons name="notifications-off-outline" size={40} color={COLORS.textMuted} />
+            </View>
             <Text style={styles.emptyTitle}>Tidak ada notifikasi</Text>
-            <Text style={styles.emptySubtitle}>
-              Notifikasi akan muncul saat ada aktivitas pada laporanmu
-            </Text>
+            <Text style={styles.emptySub}>Notifikasi aktivitas terbaru akan muncul di sini</Text>
           </View>
         }
       />
@@ -264,180 +188,147 @@ export default function NotificationsScreen({ navigation }) {
   );
 }
 
-// ─── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   header: {
-    paddingHorizontal: SPACING.base,
-    paddingTop: 55,
-    paddingBottom: SPACING.md,
-  },
-  headerTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: SPACING.md,
-  },
-  title: {
-    fontFamily: TYPOGRAPHY.fontFamily.bold,
-    fontSize: TYPOGRAPHY.sizes['2xl'],
-    color: COLORS.textPrimary,
-  },
-  subtitle: {
-    fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm,
-    color: COLORS.textSecondary,
-    marginTop: 2,
-  },
-  markAllBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: SPACING.sm,
-    backgroundColor: COLORS.primary + '15',
-    borderRadius: RADIUS.full,
-    borderWidth: 1,
-    borderColor: COLORS.primary + '40',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'ios' ? 56 : 46,
+    paddingBottom: 16,
   },
-  markAllText: {
+  circleBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ECEEF2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: 18,
+    color: COLORS.textPrimary,
+  },
+  unreadActionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 12,
+  },
+  unreadCountBadge: {
     fontFamily: TYPOGRAPHY.fontFamily.medium,
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 12,
     color: COLORS.primary,
-  },
-
-  filterTab: {
+    backgroundColor: COLORS.primary + '18',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     borderRadius: RADIUS.full,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surfaceElevated,
   },
-  filterTabActive: {
-    borderColor: 'transparent',
-  },
-  filterTabGradient: {
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 7,
-  },
-  filterTabText: {
+  markReadText: {
     fontFamily: TYPOGRAPHY.fontFamily.medium,
-    fontSize: TYPOGRAPHY.sizes.sm,
-    color: COLORS.textMuted,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 7,
+    fontSize: 12,
+    color: COLORS.textSecondary,
   },
-  filterTabTextActive: {
-    color: 'white',
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 120,
+    paddingTop: 4,
   },
-
-  separator: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginLeft: SPACING.base + 52 + SPACING.md,
-  },
-
-  notifItem: {
+  notifCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 20,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingHorizontal: SPACING.base,
-    paddingVertical: SPACING.md,
-    gap: SPACING.md,
-    position: 'relative',
+    gap: 14,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#EDEFF3',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.03,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  notifItemUnread: {
-    backgroundColor: COLORS.primary + '06',
+  notifCardUnread: {
+    borderColor: '#F59E0B40',
+    backgroundColor: '#FFFFFF',
   },
-  unreadDot: {
-    position: 'absolute',
-    left: 6,
-    top: '50%',
-    width: 6, height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary,
-    transform: [{ translateY: -3 }],
-  },
-
-  iconWrap: {
-    width: 52, height: 52,
-    borderRadius: 16,
+  iconChip: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
   },
-
-  notifContent: { flex: 1 },
-  notifHeader: {
+  contentWrap: {
+    flex: 1,
+  },
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: SPACING.sm,
+    alignItems: 'center',
     marginBottom: 4,
   },
-  notifTitle: {
-    fontFamily: TYPOGRAPHY.fontFamily.medium,
-    fontSize: TYPOGRAPHY.sizes.base,
-    color: COLORS.textSecondary,
-    flex: 1,
-    lineHeight: 20,
-  },
-  notifTitleUnread: {
+  cardTitle: {
     fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: 15,
     color: COLORS.textPrimary,
+    flex: 1,
+    marginRight: 8,
   },
-  notifTime: {
+  cardTitleBold: {
+    color: '#18181B',
+  },
+  cardTime: {
     fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.xs,
-    color: COLORS.textMuted,
+    fontSize: 11,
+    color: '#A1A1AA',
     flexShrink: 0,
   },
-  notifBody: {
+  cardBody: {
     fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm,
-    color: COLORS.textMuted,
+    fontSize: 13,
+    color: '#71717A',
     lineHeight: 18,
-    marginBottom: SPACING.sm,
   },
-
-  actionBtn: { alignSelf: 'flex-start', borderRadius: RADIUS.md, overflow: 'hidden' },
-  actionBtnGradient: {
-    flexDirection: 'row',
+  emptyWrap: {
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: SPACING.md,
-    paddingVertical: 6,
-  },
-  actionBtnText: {
-    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
-    fontSize: TYPOGRAPHY.sizes.sm,
-    color: 'white',
-  },
-
-  empty: {
-    alignItems: 'center',
+    justifyContent: 'center',
     paddingTop: 80,
-    paddingHorizontal: SPACING['2xl'],
   },
-  emptyIcon: {
-    width: 88, height: 88,
-    borderRadius: 44,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: SPACING.lg,
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   emptyTitle: {
     fontFamily: TYPOGRAPHY.fontFamily.semiBold,
-    fontSize: TYPOGRAPHY.sizes.lg,
-    color: COLORS.textSecondary,
-    marginBottom: SPACING.sm,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+    marginBottom: 4,
   },
-  emptySubtitle: {
+  emptySub: {
     fontFamily: TYPOGRAPHY.fontFamily.regular,
-    fontSize: TYPOGRAPHY.sizes.sm,
+    fontSize: 13,
     color: COLORS.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });

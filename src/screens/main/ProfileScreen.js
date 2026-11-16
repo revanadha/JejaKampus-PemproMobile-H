@@ -176,7 +176,7 @@ export default function ProfileScreen({ navigation }) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 120 }}>
 
         {/* ── Profile Header ─────────────────────────────── */}
-        <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.profileHeader}>
+        <LinearGradient colors={[COLORS.headerBackground, COLORS.background]} style={styles.profileHeader}>
           {/* Edit button */}
           <TouchableOpacity
             style={styles.editHeaderBtn}
@@ -296,6 +296,12 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Pengaturan Akun</Text>
           <View style={styles.menuCard}>
+            <MenuItem
+              icon="settings-outline" iconColor={COLORS.primary} bgColor={COLORS.primary + '20'}
+              label="Pengaturan (Settings)"
+              subtitle="Tampilan, tema, notifikasi, dan preferensi"
+              onPress={() => navigation.navigate('Settings')}
+            />
             <MenuItem
               icon="person-outline" iconColor={COLORS.primary} bgColor={COLORS.primary + '20'}
               label="Edit Profil"

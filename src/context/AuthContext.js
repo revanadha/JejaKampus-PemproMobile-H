@@ -6,22 +6,33 @@ export const useAuth = () => useContext(AuthContext);
 
 // ─── Normalisasi error Supabase + network ─────────────────────────────────────
 const isNetworkError = (e) => {
-  const msg = (e?.message || '').toLowerCase();
+  const msg = (e?.message || e?.error_description || String(e || '')).toLowerCase();
   return (
     e?.name === 'AbortError' ||
     msg.includes('network request failed') ||
     msg.includes('failed to fetch') ||
+    msg.includes('fetch failed') ||
     msg.includes('networkerror') ||
     msg.includes('unable to resolve host') ||
+    msg.includes('could not be found') ||
+    msg.includes('enotfound') ||
     msg.includes('etimedout')
   );
 };
 
 export const parseAuthError = (err) => {
+  const msg = (err?.message || err?.error_description || String(err || '')).toLowerCase();
+  if (
+    msg.includes('hostname could not be found') ||
+    msg.includes('could not be found') ||
+    msg.includes('unable to resolve host') ||
+    msg.includes('enotfound')
+  ) {
+    return new Error('Tidak dapat terhubung ke server (hostname tidak ditemukan). Periksa koneksi jaringan atau status project Supabase Anda.');
+  }
   if (isNetworkError(err)) {
     return new Error('Tidak ada koneksi internet. Periksa jaringan Anda dan coba lagi.');
   }
-  const msg = (err?.message || err?.error_description || String(err)).toLowerCase();
   if (msg.includes('invalid login credentials') || msg.includes('invalid credentials')) {
     return new Error('Email atau password salah.');
   }
@@ -119,6 +130,20 @@ export const AuthProvider = ({ children }) => {
     const cleanEmail = email.trim().toLowerCase();
     const name = displayName?.trim() || cleanEmail.split('@')[0];
 
+    if (USE_MOCK) {
+      const mockUser = { id: 'mock_' + Date.now(), email: cleanEmail };
+      const profileData = {
+        id: mockUser.id,
+        email: cleanEmail,
+        display_name: name,
+        role: role || 'mahasiswa',
+        login_method: 'email',
+      };
+      setUser(mockUser);
+      setUserProfile(profileData);
+      return { data: { user: mockUser, session: { access_token: 'mock-session-token' } } };
+    }
+
     let data, error;
     try {
       ({ data, error } = await supabase.auth.signUp({
@@ -157,6 +182,20 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password) => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (USE_MOCK) {
+      const mockUser = { id: 'mock123', email: cleanEmail };
+      const profileData = {
+        id: mockUser.id,
+        email: cleanEmail,
+        display_name: cleanEmail.split('@')[0],
+        role: 'mahasiswa',
+      };
+      setUser(mockUser);
+      setUserProfile(profileData);
+      return { data: { user: mockUser, session: { access_token: 'mock-session-token' } } };
+    }
+
     let data, error;
     try {
       ({ data, error } = await supabase.auth.signInWithPassword({ email, password }));
@@ -173,6 +212,11 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    if (USE_MOCK) {
+      setUser(null);
+      setUserProfile(null);
+      return;
+    }
     await supabase.auth.signOut();
   };
 

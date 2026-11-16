@@ -1,50 +1,52 @@
 // Design System & Theme Constants
+// Reference: Clean Modern Neo-Utility Style (Soft Light, Warm Gold & Charcoal)
 
 export const COLORS = {
-  // Primary Palette
-  primary: '#0A84FF',
-  primaryDark: '#0066CC',
-  primaryLight: '#4DA3FF',
+  // Primary Palette (Warm Amber / Gold as featured in reference UI)
+  primary: '#F59E0B',
+  primaryDark: '#D97706',
+  primaryLight: '#FEF3C7',
 
-  // Accent
-  accent: '#00D4AA',
-  accentDark: '#00A884',
-  accentLight: '#4DFFDA',
+  // Accent (Charcoal Dark for callout cards & contrast elements)
+  accent: '#18181B',
+  accentDark: '#09090B',
+  accentLight: '#27272A',
 
   // Status Colors
-  lost: '#FF453A',
-  lostLight: '#FF6B63',
-  found: '#30D158',
-  foundLight: '#5EE080',
-  pending: '#FFD60A',
+  lost: '#EF4444',
+  lostLight: '#FEE2E2',
+  found: '#10B981',
+  foundLight: '#D1FAE5',
+  pending: '#F59E0B',
 
-  // Backgrounds
-  background: '#0D1117',
-  surface: '#161B22',
-  surfaceElevated: '#21262D',
-  surfaceCard: '#1C2128',
+  // Backgrounds (Clean modern off-white and pure white cards)
+  background: '#F8F9FB',
+  headerBackground: '#F8F9FB',
+  surface: '#FFFFFF',
+  surfaceElevated: '#F3F4F6',
+  surfaceCard: '#FFFFFF',
 
   // Text
-  textPrimary: '#E6EDF3',
-  textSecondary: '#8B949E',
-  textMuted: '#484F58',
-  textInverse: '#0D1117',
+  textPrimary: '#111827',
+  textSecondary: '#6B7280',
+  textMuted: '#9CA3AF',
+  textInverse: '#FFFFFF',
 
   // Border
-  border: '#30363D',
-  borderLight: '#21262D',
+  border: '#E5E7EB',
+  borderLight: '#F3F4F6',
 
   // Gradient stops
-  gradientStart: '#0A84FF',
-  gradientEnd: '#00D4AA',
+  gradientStart: '#F59E0B',
+  gradientEnd: '#FBBF24',
 
   // Category colors
-  categoryElektronik: '#FF9F0A',
-  categoryDokumen: '#0A84FF',
-  categoryKunci: '#FFD60A',
-  categoryPakaian: '#BF5AF2',
-  categoryDompet: '#30D158',
-  categoryLainnya: '#8B949E',
+  categoryElektronik: '#F59E0B',
+  categoryDokumen: '#3B82F6',
+  categoryKunci: '#EAB308',
+  categoryPakaian: '#8B5CF6',
+  categoryDompet: '#10B981',
+  categoryLainnya: '#6B7280',
 };
 
 export const TYPOGRAPHY = {
@@ -92,23 +94,23 @@ export const SHADOWS = {
   sm: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.04,
     shadowRadius: 3,
-    elevation: 2,
+    elevation: 1,
   },
   md: {
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.07,
+    shadowRadius: 10,
+    elevation: 3,
   },
   lg: {
-    shadowColor: '#0A84FF',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 6,
   },
 };
 
@@ -132,14 +134,14 @@ export const CAMPUS_LOCATIONS = [
 ];
 
 export const CATEGORIES = [
-  { id: 'elektronik', name: 'Elektronik', icon: 'phone-portrait-outline', color: '#FF9F0A' },
-  { id: 'dokumen', name: 'Dokumen / KTM', icon: 'document-text-outline', color: '#0A84FF' },
-  { id: 'kunci', name: 'Kunci', icon: 'key-outline', color: '#FFD60A' },
-  { id: 'pakaian', name: 'Pakaian', icon: 'shirt-outline', color: '#BF5AF2' },
-  { id: 'dompet', name: 'Dompet / Tas', icon: 'bag-handle-outline', color: '#30D158' },
-  { id: 'aksesoris', name: 'Aksesoris', icon: 'glasses-outline', color: '#FF6B9D' },
-  { id: 'buku', name: 'Buku / Alat Tulis', icon: 'book-outline', color: '#FF9F0A' },
-  { id: 'lainnya', name: 'Lainnya', icon: 'ellipsis-horizontal-outline', color: '#8B949E' },
+  { id: 'elektronik', name: 'Elektronik', icon: 'phone-portrait-outline', color: '#F59E0B' },
+  { id: 'dokumen', name: 'Dokumen / KTM', icon: 'document-text-outline', color: '#C41E3A' },
+  { id: 'kunci', name: 'Kunci', icon: 'key-outline', color: '#EAB308' },
+  { id: 'pakaian', name: 'Pakaian', icon: 'shirt-outline', color: '#A855F7' },
+  { id: 'dompet', name: 'Dompet / Tas', icon: 'bag-handle-outline', color: '#10B981' },
+  { id: 'aksesoris', name: 'Aksesoris', icon: 'glasses-outline', color: '#EC4899' },
+  { id: 'buku', name: 'Buku / Alat Tulis', icon: 'book-outline', color: '#F97316' },
+  { id: 'lainnya', name: 'Lainnya', icon: 'ellipsis-horizontal-outline', color: '#71717A' },
 ];
 
 export const DROP_OFF_LOCATIONS = CAMPUS_LOCATIONS.filter(l => l.isDropOff);

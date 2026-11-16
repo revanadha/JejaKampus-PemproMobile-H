@@ -11,7 +11,7 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS } from '../../constants/theme';
 
 function Header({ title, onBack }) {
   return (
-    <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.header}>
+    <LinearGradient colors={[COLORS.headerBackground, COLORS.background]} style={styles.header}>
       <TouchableOpacity style={styles.backBtn} onPress={onBack}>
         <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
       </TouchableOpacity>

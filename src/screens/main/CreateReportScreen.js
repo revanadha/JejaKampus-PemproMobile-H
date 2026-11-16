@@ -14,10 +14,14 @@ import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, CAMPUS_LOCATIONS } fro
 
 import { base64ToArrayBuffer } from '../../utils/storageHelper';
 
-export default function CreateReportScreen({ navigation }) {
+export default function CreateReportScreen({ navigation, route }) {
   const { user, userProfile } = useAuth();
   const { isOnline } = useNetwork();
-  const [type, setType] = useState('lost');
+  
+  const initialType = route?.params?.type || 'lost';
+  const initialImage = route?.params?.initialImage || null;
+
+  const [type, setType] = useState(initialType);
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -29,7 +33,7 @@ export default function CreateReportScreen({ navigation }) {
     verificationQuestion: '',
     verificationAnswer: '',
   });
-  const [images, setImages] = useState([]);
+  const [images, setImages] = useState(initialImage ? [initialImage] : []);
   const [useDropOff, setUseDropOff] = useState(false);
   const [dropOffLocationId, setDropOffLocationId] = useState('');
   const [isAnonymous, setIsAnonymous] = useState(false);
@@ -37,17 +41,53 @@ export default function CreateReportScreen({ navigation }) {
 
   const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
 
+  // Sensor Kamera Langsung
+  const takePhoto = async () => {
+    if (images.length >= 4) {
+      Alert.alert('Batas Maksimal', 'Anda hanya dapat mengunggah maksimal 4 foto.');
+      return;
+    }
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Izin Kamera Diperlukan',
+        'JejaKampus memerlukan akses sensor kamera agar Anda dapat mengambil foto langsung dari aplikasi.'
+      );
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 0.7,
+      base64: true,
+    });
+    if (!result.canceled && result.assets?.length > 0) {
+      setImages(prev => [...prev, result.assets[0]].slice(0, 4));
+    }
+  };
+
+  // Pilih dari Galeri Foto
   const pickImage = async () => {
+    if (images.length >= 4) {
+      Alert.alert('Batas Maksimal', 'Anda hanya dapat mengunggah maksimal 4 foto.');
+      return;
+    }
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') { Alert.alert('Izin diperlukan', 'Aplikasi butuh akses galeri foto.'); return; }
+    if (status !== 'granted') {
+      Alert.alert('Izin Diperlukan', 'Aplikasi butuh akses galeri foto.');
+      return;
+    }
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
       quality: 0.7,
       base64: true,
-      selectionLimit: 4,
+      selectionLimit: 4 - images.length,
     });
-    if (!result.canceled) setImages(prev => [...prev, ...result.assets].slice(0, 4));
+    if (!result.canceled && result.assets?.length > 0) {
+      setImages(prev => [...prev, ...result.assets].slice(0, 4));
+    }
   };
 
   const uploadImages = async () => {
@@ -154,15 +194,13 @@ export default function CreateReportScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <LinearGradient colors={[COLORS.background, '#0D1F35']} style={StyleSheet.absoluteFillObject} />
-
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={COLORS.textPrimary} />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn} activeOpacity={0.7}>
+          <Ionicons name="arrow-back" size={20} color={COLORS.textPrimary} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Buat Laporan</Text>
-        <View style={{ width: 40 }} />
+        <View style={{ width: 42 }} />
       </View>
 
       {/* Type Toggle */}
@@ -170,41 +208,78 @@ export default function CreateReportScreen({ navigation }) {
         <TouchableOpacity
           style={[styles.typeBtn, type === 'lost' && styles.typeBtnLost]}
           onPress={() => setType('lost')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="search-outline" size={18} color={type === 'lost' ? 'white' : COLORS.textSecondary} />
+          <Ionicons name="search-outline" size={17} color={type === 'lost' ? 'white' : COLORS.textSecondary} />
           <Text style={[styles.typeBtnText, type === 'lost' && { color: 'white' }]}>Barang Hilang</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.typeBtn, type === 'found' && styles.typeBtnFound]}
           onPress={() => setType('found')}
+          activeOpacity={0.8}
         >
-          <Ionicons name="checkmark-circle-outline" size={18} color={type === 'found' ? 'white' : COLORS.textSecondary} />
+          <Ionicons name="camera-outline" size={17} color={type === 'found' ? 'white' : COLORS.textSecondary} />
           <Text style={[styles.typeBtnText, type === 'found' && { color: 'white' }]}>Barang Ditemukan</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Image Picker */}
-        <Text style={styles.sectionTitle}>📷 Foto Barang</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACING.base }}>
-          <View style={{ flexDirection: 'row', gap: SPACING.sm, paddingHorizontal: SPACING.base }}>
-            {images.map((img, i) => (
-              <View key={i} style={styles.imageThumb}>
-                <Image source={{ uri: img.uri }} style={styles.thumbImg} />
-                <TouchableOpacity style={styles.removeImg} onPress={() => setImages(prev => prev.filter((_, idx) => idx !== i))}>
-                  <Ionicons name="close-circle" size={20} color={COLORS.lost} />
-                </TouchableOpacity>
-              </View>
-            ))}
-            {images.length < 4 && (
-              <TouchableOpacity style={styles.addImageBtn} onPress={pickImage}>
-                <Ionicons name="camera-outline" size={28} color={COLORS.textMuted} />
-                <Text style={styles.addImageText}>Tambah Foto</Text>
-                <Text style={styles.addImageHint}>{images.length}/4</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
+        {/* Photo Section */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={styles.sectionTitle}>Foto Barang</Text>
+          <Text style={styles.photoCountText}>{images.length}/4 Foto</Text>
+        </View>
+
+        {/* Camera Sensor & Gallery Action Buttons */}
+        <View style={styles.photoActionsRow}>
+          <TouchableOpacity
+            style={[styles.photoActionBtn, styles.cameraActionBtn]}
+            onPress={takePhoto}
+            activeOpacity={0.85}
+          >
+            <View style={styles.photoActionIconWrapCamera}>
+              <Ionicons name="camera" size={20} color="#FFFFFF" />
+            </View>
+            <View style={styles.photoActionTextWrap}>
+              <Text style={styles.cameraActionTitle}>Ambil Foto Kamera</Text>
+              <Text style={styles.cameraActionSub}>Buka sensor kamera langsung</Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.photoActionBtn, styles.galleryActionBtn]}
+            onPress={pickImage}
+            activeOpacity={0.85}
+          >
+            <View style={styles.photoActionIconWrapGallery}>
+              <Ionicons name="images-outline" size={20} color={COLORS.textPrimary} />
+            </View>
+            <View style={styles.photoActionTextWrap}>
+              <Text style={styles.galleryActionTitle}>Buka Galeri</Text>
+              <Text style={styles.galleryActionSub}>Pilih foto tersimpan</Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Image Preview Carousel */}
+        {images.length > 0 && (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACING.md }}>
+            <View style={{ flexDirection: 'row', gap: SPACING.sm, paddingVertical: 4 }}>
+              {images.map((img, i) => (
+                <View key={i} style={styles.imageThumb}>
+                  <Image source={{ uri: img.uri }} style={styles.thumbImg} />
+                  <TouchableOpacity
+                    style={styles.removeImg}
+                    onPress={() => setImages(prev => prev.filter((_, idx) => idx !== i))}
+                    activeOpacity={0.8}
+                  >
+                    <Ionicons name="close-circle" size={22} color={COLORS.lost} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        )}
 
         {/* Basic Info */}
         <Text style={styles.sectionTitle}>📋 Informasi Dasar</Text>
@@ -363,41 +438,307 @@ const TextAreaField = ({ label, ...props }) => (
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: SPACING.base, paddingTop: 55, paddingBottom: SPACING.md },
-  backBtn: { width: 40, height: 40, borderRadius: 12, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.lg, color: COLORS.textPrimary },
-  typeToggle: { flexDirection: 'row', marginHorizontal: SPACING.base, marginBottom: SPACING.md, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: 4, borderWidth: 1, borderColor: COLORS.border },
-  typeBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: SPACING.sm, borderRadius: RADIUS.md },
-  typeBtnLost: { backgroundColor: COLORS.lost },
-  typeBtnFound: { backgroundColor: COLORS.found },
-  typeBtnText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  scroll: { paddingHorizontal: SPACING.base, paddingBottom: 50 },
-  sectionTitle: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.base, color: COLORS.textPrimary, marginBottom: SPACING.sm },
-  imageThumb: { width: 90, height: 90, borderRadius: RADIUS.md, overflow: 'visible' },
-  thumbImg: { width: 90, height: 90, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceElevated },
-  removeImg: { position: 'absolute', top: -8, right: -8, backgroundColor: COLORS.background, borderRadius: 10 },
-  addImageBtn: { width: 90, height: 90, borderRadius: RADIUS.md, borderWidth: 2, borderColor: COLORS.border, borderStyle: 'dashed', alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface },
-  addImageText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 10, color: COLORS.textMuted, marginTop: 4 },
-  addImageHint: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: 10, color: COLORS.textMuted },
-  label: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary, marginBottom: SPACING.xs },
-  inputGroup: { marginBottom: SPACING.md },
-  inputWrapper: { backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: SPACING.md, height: 50, justifyContent: 'center' },
-  input: { color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.base },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.sm, marginBottom: SPACING.md },
-  catCard: { width: '22%', alignItems: 'center', paddingVertical: SPACING.md, borderRadius: RADIUS.lg, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border, gap: 4 },
-  catCardText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 9, color: COLORS.textSecondary, textAlign: 'center' },
-  locChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SPACING.md, paddingVertical: 8, borderRadius: RADIUS.full, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  locChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  locChipText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 12, color: COLORS.textSecondary, maxWidth: 120 },
-  infoBox: { flexDirection: 'row', gap: 8, backgroundColor: COLORS.accent + '15', borderRadius: RADIUS.md, padding: SPACING.md, marginBottom: SPACING.md, alignItems: 'flex-start' },
-  infoBoxText: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.accent, flex: 1 },
-  switchRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, padding: SPACING.md, marginBottom: SPACING.md, borderWidth: 1, borderColor: COLORS.border },
-  switchLabel: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.base, color: COLORS.textPrimary },
-  switchSub: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  dropOffOption: { flexDirection: 'row', alignItems: 'center', gap: SPACING.sm, padding: SPACING.md, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceElevated, marginBottom: SPACING.sm, borderWidth: 1, borderColor: COLORS.border },
-  dropOffOptionActive: { borderColor: COLORS.accent, backgroundColor: COLORS.accent + '15' },
-  dropOffText: { flex: 1, fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  submitBtn: { borderRadius: RADIUS.lg, overflow: 'hidden', marginTop: SPACING.md },
-  submitGradient: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 15, gap: 8 },
-  submitText: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.md, color: 'white' },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.base,
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: SPACING.md,
+  },
+  backBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  headerTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.lg,
+    color: COLORS.textPrimary,
+  },
+  typeToggle: {
+    flexDirection: 'row',
+    marginHorizontal: SPACING.base,
+    marginBottom: SPACING.md,
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  typeBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    borderRadius: RADIUS.md,
+  },
+  typeBtnLost: {
+    backgroundColor: COLORS.lost,
+  },
+  typeBtnFound: {
+    backgroundColor: COLORS.found,
+  },
+  typeBtnText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
+  },
+  scroll: {
+    paddingHorizontal: SPACING.base,
+    paddingBottom: 60,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+  },
+  sectionTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.base,
+    color: COLORS.textPrimary,
+  },
+  photoCountText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textMuted,
+  },
+  photoActionsRow: {
+    flexDirection: 'row',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  photoActionBtn: {
+    flex: 1,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    borderWidth: 1,
+  },
+  cameraActionBtn: {
+    backgroundColor: COLORS.accent,
+    borderColor: COLORS.accent,
+  },
+  galleryActionBtn: {
+    backgroundColor: COLORS.surface,
+    borderColor: COLORS.border,
+  },
+  photoActionIconWrapCamera: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoActionIconWrapGallery: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  photoActionTextWrap: {
+    flex: 1,
+  },
+  cameraActionTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: '#FFFFFF',
+  },
+  cameraActionSub: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.7)',
+    marginTop: 1,
+  },
+  galleryActionTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    color: COLORS.textPrimary,
+  },
+  galleryActionSub: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 10,
+    color: COLORS.textMuted,
+    marginTop: 1,
+  },
+  imageThumb: {
+    width: 90,
+    height: 90,
+    borderRadius: RADIUS.md,
+    overflow: 'visible',
+    marginRight: 6,
+  },
+  thumbImg: {
+    width: 90,
+    height: 90,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceElevated,
+  },
+  removeImg: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+  },
+  label: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
+    marginBottom: SPACING.xs,
+  },
+  inputGroup: {
+    marginBottom: SPACING.md,
+  },
+  inputWrapper: {
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingHorizontal: SPACING.md,
+    height: 50,
+    justifyContent: 'center',
+  },
+  input: {
+    color: COLORS.textPrimary,
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.base,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: SPACING.sm,
+    marginBottom: SPACING.md,
+  },
+  catCard: {
+    width: '22%',
+    alignItems: 'center',
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 4,
+  },
+  catCardText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: 9,
+    color: COLORS.textSecondary,
+    textAlign: 'center',
+  },
+  locChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: 8,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  locChipActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  locChipText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    maxWidth: 120,
+  },
+  infoBox: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: COLORS.primary + '15',
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: COLORS.primary + '30',
+  },
+  infoBoxText: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textPrimary,
+    flex: 1,
+  },
+  switchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    padding: SPACING.md,
+    marginBottom: SPACING.md,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  switchLabel: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.base,
+    color: COLORS.textPrimary,
+  },
+  switchSub: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
+  },
+  dropOffOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.sm,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.surfaceElevated,
+    marginBottom: SPACING.sm,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  dropOffOptionActive: {
+    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent + '15',
+  },
+  dropOffText: {
+    flex: 1,
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textSecondary,
+  },
+  submitBtn: {
+    borderRadius: RADIUS.lg,
+    overflow: 'hidden',
+    marginTop: SPACING.md,
+  },
+  submitGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+    gap: 8,
+  },
+  submitText: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: 'white',
+  },
 });

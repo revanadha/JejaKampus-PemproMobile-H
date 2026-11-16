@@ -1,4 +1,4 @@
-﻿/**
+/**
  * useNetworkStatus.js
  * Hook untuk memantau status koneksi jaringan secara real-time.
  */
@@ -6,15 +6,36 @@
 import { useState, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
 
-const PING_URL = 'https://zklprhlbxjlvrtvucyyx.supabase.co/rest/v1/';
+const PRIMARY_PING_URL = 'https://clients3.google.com/generate_204';
+const FALLBACK_PING_URL = 'https://www.google.com';
 const CHECK_INTERVAL_MS = 10000;
+const TIMEOUT_MS = 4000;
 
 export const checkConnectivity = async () => {
   try {
-    const res = await fetch(PING_URL, { method: 'HEAD' });
-    return res.ok || res.status < 500;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const res = await fetch(PRIMARY_PING_URL, {
+      method: 'GET',
+      signal: controller.signal,
+      headers: { 'Cache-Control': 'no-cache' },
+    });
+    clearTimeout(timeoutId);
+    return res.status === 204 || res.ok;
   } catch {
-    return false;
+    try {
+      const fallbackController = new AbortController();
+      const fbTimeout = setTimeout(() => fallbackController.abort(), TIMEOUT_MS);
+      const res = await fetch(FALLBACK_PING_URL, {
+        method: 'HEAD',
+        signal: fallbackController.signal,
+        headers: { 'Cache-Control': 'no-cache' },
+      });
+      clearTimeout(fbTimeout);
+      return res.ok || res.status < 500;
+    } catch {
+      return false;
+    }
   }
 };
 

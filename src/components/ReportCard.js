@@ -15,27 +15,24 @@ export default function ReportCard({ report, onPress, onLongPress }) {
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} onLongPress={onLongPress} activeOpacity={0.85}>
-      {/* Left accent bar */}
-      <View style={[styles.accent, { backgroundColor: isLost ? COLORS.lost : COLORS.found }]} />
-
       <View style={styles.content}>
         {/* Top row */}
         <View style={styles.topRow}>
-          {/* Type badge */}
-          <View style={[styles.typeBadge, { backgroundColor: isLost ? COLORS.lost + '20' : COLORS.found + '20' }]}>
+          {/* Type badge — clean, non-capsule (R-09) */}
+          <View style={[styles.typeBadge, { backgroundColor: isLost ? COLORS.lost + '18' : COLORS.found + '18' }]}>
             <Ionicons
               name={isLost ? 'search-outline' : 'checkmark-circle-outline'}
               size={12}
               color={isLost ? COLORS.lost : COLORS.found}
             />
             <Text style={[styles.typeText, { color: isLost ? COLORS.lost : COLORS.found }]}>
-              {isLost ? 'HILANG' : 'DITEMUKAN'}
+              {isLost ? 'Hilang' : 'Ditemukan'}
             </Text>
           </View>
 
           {/* Category chip */}
           {category && (
-            <View style={[styles.catChip, { backgroundColor: category.color + '20' }]}>
+            <View style={[styles.catChip, { backgroundColor: category.color + '15' }]}>
               <Ionicons name={category.icon} size={11} color={category.color} />
               <Text style={[styles.catText, { color: category.color }]}>{category.name}</Text>
             </View>
@@ -49,7 +46,7 @@ export default function ReportCard({ report, onPress, onLongPress }) {
           {report.images?.length > 0 ? (
             <Image source={{ uri: report.images[0] }} style={styles.thumbnail} />
           ) : (
-            <View style={[styles.noImageThumb, { backgroundColor: category?.color + '20' || COLORS.surfaceElevated }]}>
+            <View style={[styles.noImageThumb, { backgroundColor: category?.color + '15' || COLORS.surfaceElevated }]}>
               <Ionicons name={category?.icon || 'help-outline'} size={24} color={category?.color || COLORS.textMuted} />
             </View>
           )}
@@ -98,39 +95,37 @@ export default function ReportCard({ report, onPress, onLongPress }) {
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     backgroundColor: COLORS.surface,
     marginHorizontal: SPACING.base,
     marginBottom: SPACING.sm,
-    borderRadius: RADIUS.xl,
+    borderRadius: RADIUS.lg,
     borderWidth: 1,
     borderColor: COLORS.border,
     overflow: 'hidden',
   },
-  accent: { width: 4 },
-  content: { flex: 1, padding: SPACING.md },
+  content: { padding: SPACING.base },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: SPACING.xs, marginBottom: SPACING.sm, flexWrap: 'wrap' },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.full },
-  typeText: { fontFamily: TYPOGRAPHY.fontFamily.bold, fontSize: 10, letterSpacing: 0.5 },
-  catChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: RADIUS.full },
-  catText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 10 },
-  time: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: 10, color: COLORS.textMuted, marginLeft: 'auto' },
-  mainRow: { flexDirection: 'row', gap: SPACING.sm, marginBottom: SPACING.sm },
-  thumbnail: { width: 70, height: 70, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceElevated },
-  noImageThumb: { width: 70, height: 70, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
+  typeBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 8, paddingVertical: 3, borderRadius: RADIUS.sm },
+  typeText: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: 11 },
+  catChip: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 7, paddingVertical: 3, borderRadius: RADIUS.sm },
+  catText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 11 },
+  time: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: 11, color: COLORS.textMuted, marginLeft: 'auto' },
+  mainRow: { flexDirection: 'row', gap: SPACING.md, marginBottom: SPACING.sm },
+  thumbnail: { width: 72, height: 72, borderRadius: RADIUS.md, backgroundColor: COLORS.surfaceElevated },
+  noImageThumb: { width: 72, height: 72, borderRadius: RADIUS.md, alignItems: 'center', justifyContent: 'center' },
   info: { flex: 1 },
   title: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.base, color: COLORS.textPrimary, marginBottom: 4 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 3, marginBottom: 4 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 },
   location: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textMuted, flex: 1 },
   description: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary, lineHeight: 18 },
-  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  bottomRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 },
   authorInfo: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  authorDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: COLORS.textMuted },
+  authorDot: { width: 5, height: 5, borderRadius: 2.5, backgroundColor: COLORS.textMuted },
   authorName: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 11, color: COLORS.textSecondary },
   authorRole: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: 11, color: COLORS.textMuted, textTransform: 'capitalize' },
   badges: { flexDirection: 'row', gap: SPACING.xs },
-  dropOffBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: COLORS.accent + '20', paddingHorizontal: 6, paddingVertical: 3, borderRadius: RADIUS.full },
+  dropOffBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: COLORS.accent + '18', paddingHorizontal: 7, paddingVertical: 3, borderRadius: RADIUS.sm },
   dropOffText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 10, color: COLORS.accent },
-  resolvedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: COLORS.found + '20', paddingHorizontal: 6, paddingVertical: 3, borderRadius: RADIUS.full },
+  resolvedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: COLORS.found + '18', paddingHorizontal: 7, paddingVertical: 3, borderRadius: RADIUS.sm },
   resolvedText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 10, color: COLORS.found },
 });

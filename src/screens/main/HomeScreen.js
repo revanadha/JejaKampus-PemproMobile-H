@@ -1,23 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View, Text, FlatList, TouchableOpacity,
-  StyleSheet, TextInput, RefreshControl, ScrollView, ActivityIndicator,
+  StyleSheet, TextInput, RefreshControl, ScrollView,
+  ActivityIndicator, Image, Alert,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { supabase, USE_MOCK } from '../../config/supabase';
 import { getReports } from '../../services/reportService';
 import { useAuth } from '../../context/AuthContext';
 import { useNetwork } from '../../context/NetworkContext';
-import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES } from '../../constants/theme';
+import { COLORS, TYPOGRAPHY, SPACING, RADIUS, CATEGORIES, SHADOWS } from '../../constants/theme';
 import ReportCard from '../../components/ReportCard';
 import FilterModal from '../../components/FilterModal';
-
-const TYPE_TABS = [
-  { id: 'all', label: 'Semua', icon: 'apps-outline' },
-  { id: 'lost', label: 'Hilang', icon: 'search-outline' },
-  { id: 'found', label: 'Ditemukan', icon: 'checkmark-circle-outline' },
-];
 
 export default function HomeScreen({ navigation }) {
   const { userProfile } = useAuth();
@@ -34,7 +29,6 @@ export default function HomeScreen({ navigation }) {
 
   const fetchReports = async () => {
     setFetchError(null);
-    // GET dengan access token otomatis dari reportService
     const { data, error } = await getReports({
       type: activeType !== 'all' ? activeType : undefined,
       category: selectedCategory || undefined,
@@ -65,8 +59,50 @@ export default function HomeScreen({ navigation }) {
   useEffect(() => {
     if (USE_MOCK) {
       setReports([
-        { id: '1', type: 'lost', title: 'Dompet Kulit Hitam', description: 'Hilang sekitar jam 10 pagi di Kantin.', locationId: 'kantin_a', locationName: 'Kantin Pusat (A)', category: 'dompet', createdAt: { toDate: () => new Date() }, status: 'active', authorName: 'Budi', authorRole: 'mahasiswa' },
-        { id: '2', type: 'found', title: 'Kunci Motor Honda', description: 'Ditemukan di bangku panjang parkiran barat.', locationId: 'parkir_barat', locationName: 'Area Parkir Barat', category: 'kunci', createdAt: { toDate: () => new Date(Date.now() - 3600000) }, status: 'active', authorName: 'Anonim', hasDropOff: true, dropOffStatus: 'received', dropOffLocationName: 'Pos Satpam Utama' }
+        {
+          id: '1',
+          type: 'lost',
+          title: 'AirPods Pro Gen 2',
+          description: 'Hilang sekitar jam 10 pagi di Kantin Danau UMM.',
+          locationId: 'kantin_a',
+          locationName: 'Kantin Danau UMM',
+          category: 'elektronik',
+          createdAt: { toDate: () => new Date() },
+          status: 'active',
+          authorName: 'Alex Morgan',
+          authorRole: 'mahasiswa',
+          images: ['https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&q=80'],
+        },
+        {
+          id: '2',
+          type: 'found',
+          title: 'Kunci Motor Honda',
+          description: 'Ditemukan di bangku panjang parkiran barat.',
+          locationId: 'parkir_barat',
+          locationName: 'Area Parkir Barat',
+          category: 'kunci',
+          createdAt: { toDate: () => new Date(Date.now() - 3600000) },
+          status: 'active',
+          authorName: 'Satpam Gerbang',
+          hasDropOff: true,
+          dropOffStatus: 'received',
+          dropOffLocationName: 'Pos Satpam Utama',
+          images: ['https://images.unsplash.com/photo-1582139329536-e7284fece509?w=500&q=80'],
+        },
+        {
+          id: '3',
+          type: 'lost',
+          title: 'Dompet Kulit Cokelat & KTM',
+          description: 'Tertinggal di meja Perpustakaan lantai 2.',
+          locationId: 'perpus_pusat',
+          locationName: 'Perpustakaan Pusat UMM',
+          category: 'dompet',
+          createdAt: { toDate: () => new Date(Date.now() - 7200000) },
+          status: 'active',
+          authorName: 'Dina Safitri',
+          authorRole: 'mahasiswa',
+          images: ['https://images.unsplash.com/photo-1627123424574-724758594e93?w=500&q=80'],
+        },
       ]);
       setLoading(false);
       setRefreshing(false);
@@ -86,6 +122,45 @@ export default function HomeScreen({ navigation }) {
     };
   }, [activeType, selectedCategory, filters]);
 
+  // Kamera sensor langsung untuk foto barang temuan
+  const handleDirectCameraCapture = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(
+          'Izin Kamera Diperlukan',
+          'JejaKampus memerlukan izin akses sensor kamera agar Anda dapat memfoto barang secara langsung.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets?.length > 0) {
+        navigation.navigate('CreateReport', {
+          type: 'found',
+          initialImage: result.assets[0],
+        });
+      }
+    } catch (e) {
+      Alert.alert('Error Kamera', 'Gagal membuka sensor kamera: ' + e.message);
+    }
+  };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 11) return 'Selamat Pagi';
+    if (hour < 15) return 'Selamat Siang';
+    if (hour < 18) return 'Selamat Sore';
+    return 'Selamat Malam';
+  };
+
   const filtered = reports.filter(r =>
     !searchQuery || r.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -96,99 +171,242 @@ export default function HomeScreen({ navigation }) {
     fetchReports();
   };
 
+  const QUICK_ACTIONS = [
+    {
+      id: 'report_lost',
+      label: 'Lapor Hilang',
+      icon: 'search',
+      isDark: true,
+      onPress: () => navigation.navigate('CreateReport', { type: 'lost' }),
+    },
+    {
+      id: 'camera_capture',
+      label: 'Foto Temuan',
+      icon: 'camera-outline',
+      isDark: false,
+      onPress: handleDirectCameraCapture,
+    },
+    {
+      id: 'drop_off',
+      label: 'Pos Satpam',
+      icon: 'shield-checkmark-outline',
+      isDark: false,
+      onPress: () => {
+        setSelectedCategory(null);
+        setActiveType('found');
+      },
+    },
+    {
+      id: 'status_check',
+      label: 'Status Temuan',
+      icon: 'checkmark-circle-outline',
+      isDark: false,
+      onPress: () => setActiveType('all'),
+    },
+    {
+      id: 'map_campus',
+      label: 'Peta Kampus',
+      icon: 'compass-outline',
+      isDark: false,
+      onPress: () => navigation.navigate('Map'),
+    },
+  ];
+
   const renderHeader = () => (
-    <View>
-      {/* Greeting */}
-      <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.topBg}>
-        <View style={styles.greeting}>
-          <View>
-            <Text style={styles.greetingText}>Halo, {userProfile?.display_name?.split(' ')[0] || 'Pengguna'} 👋</Text>
-            <Text style={styles.greetingSubtext}>Ada barang yang hilang di kampus?</Text>
+    <View style={styles.headerContainer}>
+      {/* Top Greeting Header (Reference Screen 1) */}
+      <View style={styles.topBar}>
+        <View style={styles.userProfileRow}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarLetter}>
+              {(userProfile?.display_name || 'U')[0].toUpperCase()}
+            </Text>
           </View>
-          <TouchableOpacity style={styles.notifBtn} onPress={() => navigation.navigate('Notifications')}>
-            <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
-            <View style={styles.notifDot} />
-          </TouchableOpacity>
+          <View style={styles.userTexts}>
+            <Text style={styles.greetingSubtext}>{getGreeting()}</Text>
+            <Text style={styles.greetingName}>
+              {userProfile?.display_name || 'Mahasiswa UMM'}
+            </Text>
+          </View>
         </View>
 
-        {/* Search Bar */}
-        <View style={styles.searchBar}>
-          <Ionicons name="search-outline" size={20} color={COLORS.textSecondary} />
+        <TouchableOpacity
+          style={styles.notifBtn}
+          onPress={() => navigation.navigate('Notifications')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
+          <View style={styles.notifBadge} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Search Bar with Yellow Filter Button */}
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputWrap}>
+          <Ionicons name="search-outline" size={19} color={COLORS.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Cari barang hilang atau ditemukan..."
+            placeholder="Cari barang hilang, kategori, lokasi..."
             placeholderTextColor={COLORS.textMuted}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-          <TouchableOpacity onPress={() => setShowFilter(true)}>
-            <Ionicons name="options-outline" size={22} color={COLORS.primary} />
-          </TouchableOpacity>
+          {searchQuery ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+            </TouchableOpacity>
+          ) : null}
         </View>
-      </LinearGradient>
-
-      {/* Stats Row */}
-      <View style={styles.statsRow}>
-        <StatCard icon="alert-circle" color={COLORS.lost} label="Hilang" value={reports.filter(r => r.type === 'lost').length} />
-        <StatCard icon="checkmark-circle" color={COLORS.found} label="Ditemukan" value={reports.filter(r => r.type === 'found').length} />
-        <StatCard icon="shield-checkmark" color={COLORS.accent} label="Selesai" value={reports.filter(r => r.status === 'resolved').length} />
+        <TouchableOpacity
+          style={styles.filterBtn}
+          onPress={() => setShowFilter(true)}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="options-outline" size={20} color="#18181B" />
+        </TouchableOpacity>
       </View>
 
-      {/* Type Tabs */}
-      <View style={styles.tabs}>
-        {TYPE_TABS.map(tab => (
+      {/* Quick Action Grid (5 Horizontal Buttons) */}
+      <View style={styles.quickActionsRow}>
+        {QUICK_ACTIONS.map(action => (
           <TouchableOpacity
-            key={tab.id}
-            style={[styles.tab, activeType === tab.id && styles.tabActive]}
-            onPress={() => setActiveType(tab.id)}
+            key={action.id}
+            style={styles.actionItem}
+            onPress={action.onPress}
+            activeOpacity={0.8}
           >
-            <Ionicons name={tab.icon} size={16} color={activeType === tab.id ? 'white' : COLORS.textSecondary} />
-            <Text style={[styles.tabText, activeType === tab.id && styles.tabTextActive]}>{tab.label}</Text>
+            <View style={[styles.actionIconBox, action.isDark ? styles.actionIconDark : styles.actionIconWhite]}>
+              <Ionicons
+                name={action.icon}
+                size={22}
+                color={action.isDark ? COLORS.primary : COLORS.textPrimary}
+              />
+            </View>
+            <Text style={styles.actionLabel} numberOfLines={1}>
+              {action.label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
-      {/* Category Filter */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ paddingHorizontal: SPACING.base, gap: SPACING.sm }}>
-        <TouchableOpacity
-          style={[styles.catChip, !selectedCategory && styles.catChipActive]}
-          onPress={() => setSelectedCategory(null)}
-        >
-          <Text style={[styles.catChipText, !selectedCategory && styles.catChipTextActive]}>Semua</Text>
+      {/* Callout / Promo Banner (Reference Screen 1) */}
+      <View style={styles.calloutBanner}>
+        <View style={styles.calloutTextCol}>
+          <View style={styles.calloutBadgePill}>
+            <Text style={styles.calloutBadgePillText}>Info Kampus</Text>
+          </View>
+          <Text style={styles.calloutTitle}>Titipkan Barang Temuan</Text>
+          <Text style={styles.calloutDesc}>
+            Simpan temuan di Pos Satpam terdekat agar aman dan cepat terverifikasi.
+          </Text>
+        </View>
+        <View style={styles.calloutIconBox}>
+          <Ionicons name="shield-checkmark" size={26} color="#18181B" />
+        </View>
+      </View>
+
+      {/* Section: Laporan Terbaru (Nearby Lost Items) */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Laporan Terbaru</Text>
+        <TouchableOpacity onPress={() => setActiveType('all')}>
+          <Text style={styles.seeAllText}>Lihat Semua</Text>
         </TouchableOpacity>
-        {CATEGORIES.map(cat => (
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.nearbyScroll}
+      >
+        {reports.slice(0, 5).map(item => (
           <TouchableOpacity
-            key={cat.id}
-            style={[styles.catChip, selectedCategory === cat.id && { backgroundColor: cat.color + '33', borderColor: cat.color }]}
-            onPress={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
+            key={`nearby-${item.id}`}
+            style={styles.nearbyCard}
+            onPress={() => navigation.navigate('ReportDetail', { reportId: item.id })}
+            activeOpacity={0.85}
           >
-            <Ionicons name={cat.icon} size={14} color={selectedCategory === cat.id ? cat.color : COLORS.textSecondary} />
-            <Text style={[styles.catChipText, selectedCategory === cat.id && { color: cat.color }]}>{cat.name}</Text>
+            {item.images?.length > 0 ? (
+              <Image source={{ uri: item.images[0] }} style={styles.nearbyImage} />
+            ) : (
+              <View style={styles.nearbyImageFallback}>
+                <Ionicons
+                  name={item.type === 'lost' ? 'search' : 'checkmark-circle'}
+                  size={30}
+                  color={item.type === 'lost' ? COLORS.lost : COLORS.found}
+                />
+              </View>
+            )}
+            <View style={styles.nearbyContent}>
+              <Text style={styles.nearbyTitle} numberOfLines={1}>{item.title}</Text>
+              <View style={styles.nearbyLocRow}>
+                <Ionicons name="location-outline" size={12} color={COLORS.textMuted} />
+                <Text style={styles.nearbyLocText} numberOfLines={1}>
+                  {item.locationName || 'Kampus III UMM'}
+                </Text>
+              </View>
+            </View>
           </TouchableOpacity>
         ))}
       </ScrollView>
 
-      {filters.location && (
-        <View style={styles.activeFilter}>
-          <Ionicons name="location" size={14} color={COLORS.primary} />
-          <Text style={styles.activeFilterText}>Filter lokasi aktif</Text>
-          <TouchableOpacity onPress={() => setFilters(f => ({ ...f, location: null }))}>
-            <Ionicons name="close-circle" size={16} color={COLORS.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      )}
+      {/* Section: Kategori Populer (Trending Categories) */}
+      <View style={styles.sectionHeaderRow}>
+        <Text style={styles.sectionTitle}>Kategori Populer</Text>
+        <TouchableOpacity onPress={() => setSelectedCategory(null)}>
+          <Text style={styles.seeAllText}>Reset</Text>
+        </TouchableOpacity>
+      </View>
 
-      <Text style={styles.listTitle}>
-        {filtered.length} Laporan {activeType !== 'all' ? (activeType === 'lost' ? 'Hilang' : 'Ditemukan') : ''}
-      </Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryScroll}
+      >
+        <TouchableOpacity
+          style={[styles.catPill, !selectedCategory && styles.catPillActive]}
+          onPress={() => setSelectedCategory(null)}
+        >
+          <Text style={[styles.catPillText, !selectedCategory && styles.catPillTextActive]}>
+            Semua
+          </Text>
+        </TouchableOpacity>
+        {CATEGORIES.map(cat => {
+          const isSelected = selectedCategory === cat.id;
+          return (
+            <TouchableOpacity
+              key={cat.id}
+              style={[styles.catPill, isSelected && styles.catPillActive]}
+              onPress={() => setSelectedCategory(isSelected ? null : cat.id)}
+            >
+              <Ionicons
+                name={cat.icon}
+                size={14}
+                color={isSelected ? '#18181B' : COLORS.textSecondary}
+              />
+              <Text style={[styles.catPillText, isSelected && styles.catPillTextActive]}>
+                {cat.name}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Feed List Title */}
+      <View style={styles.feedHeaderRow}>
+        <Text style={styles.feedTitle}>
+          {filtered.length} Laporan Kampus
+        </Text>
+      </View>
     </View>
   );
 
-  if (loading) return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" color={COLORS.primary} />
-    </View>
-  );
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -200,14 +418,14 @@ export default function HomeScreen({ navigation }) {
         )}
         ListHeaderComponent={renderHeader}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={
           fetchError ? (
             <View style={styles.empty}>
               <Ionicons
                 name={isOnline ? 'cloud-offline-outline' : 'wifi-outline'}
-                size={60}
+                size={52}
                 color={COLORS.textMuted}
               />
               <Text style={styles.emptyTitle}>
@@ -224,24 +442,13 @@ export default function HomeScreen({ navigation }) {
             </View>
           ) : (
             <View style={styles.empty}>
-              <Ionicons name="file-tray-outline" size={60} color={COLORS.textMuted} />
+              <Ionicons name="file-tray-outline" size={52} color={COLORS.textMuted} />
               <Text style={styles.emptyTitle}>Tidak ada laporan</Text>
               <Text style={styles.emptySubtitle}>Belum ada laporan yang sesuai filter.</Text>
             </View>
           )
         }
       />
-
-      {/* FAB */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => navigation.navigate('CreateReport')}
-        activeOpacity={0.85}
-      >
-        <LinearGradient colors={[COLORS.primary, COLORS.accent]} style={styles.fabGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-          <Ionicons name="add" size={28} color="white" />
-        </LinearGradient>
-      </TouchableOpacity>
 
       <FilterModal
         visible={showFilter}
@@ -253,47 +460,330 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
-const StatCard = ({ icon, color, label, value }) => (
-  <View style={[styles.statCard, { borderColor: color + '40' }]}>
-    <Ionicons name={icon} size={22} color={color} />
-    <Text style={[styles.statValue, { color }]}>{value}</Text>
-    <Text style={styles.statLabel}>{label}</Text>
-  </View>
-);
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.background },
-  topBg: { paddingHorizontal: SPACING.base, paddingTop: 55, paddingBottom: SPACING.lg },
-  greeting: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACING.base },
-  greetingText: { fontFamily: TYPOGRAPHY.fontFamily.bold, fontSize: TYPOGRAPHY.sizes.xl, color: COLORS.textPrimary },
-  greetingSubtext: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary, marginTop: 2 },
-  notifBtn: { width: 42, height: 42, borderRadius: 13, backgroundColor: COLORS.surface, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: COLORS.border },
-  notifDot: { position: 'absolute', top: 8, right: 8, width: 8, height: 8, borderRadius: 4, backgroundColor: COLORS.lost, borderWidth: 1.5, borderColor: COLORS.background },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, borderColor: COLORS.border, paddingHorizontal: SPACING.md, height: 48, gap: SPACING.sm },
-  searchInput: { flex: 1, color: COLORS.textPrimary, fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.base },
-  statsRow: { flexDirection: 'row', paddingHorizontal: SPACING.base, gap: SPACING.sm, marginTop: SPACING.md, marginBottom: SPACING.sm },
-  statCard: { flex: 1, backgroundColor: COLORS.surface, borderRadius: RADIUS.lg, borderWidth: 1, alignItems: 'center', paddingVertical: SPACING.md, gap: 4 },
-  statValue: { fontFamily: TYPOGRAPHY.fontFamily.bold, fontSize: TYPOGRAPHY.sizes.xl },
-  statLabel: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: 10, color: COLORS.textSecondary },
-  tabs: { flexDirection: 'row', paddingHorizontal: SPACING.base, gap: SPACING.sm, marginBottom: SPACING.sm },
-  tab: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  tabActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  tabText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textSecondary },
-  tabTextActive: { color: 'white' },
-  categoryScroll: { marginBottom: SPACING.sm },
-  catChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: SPACING.md, paddingVertical: 7, borderRadius: RADIUS.full, backgroundColor: COLORS.surface, borderWidth: 1, borderColor: COLORS.border },
-  catChipActive: { backgroundColor: COLORS.primary + '33', borderColor: COLORS.primary },
-  catChipText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: 12, color: COLORS.textSecondary },
-  catChipTextActive: { color: COLORS.primary },
-  activeFilter: { flexDirection: 'row', alignItems: 'center', gap: 6, marginHorizontal: SPACING.base, marginBottom: SPACING.sm, backgroundColor: COLORS.primary + '15', borderRadius: RADIUS.md, paddingHorizontal: SPACING.md, paddingVertical: SPACING.sm },
-  activeFilterText: { fontFamily: TYPOGRAPHY.fontFamily.medium, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primary, flex: 1 },
-  listTitle: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.base, color: COLORS.textSecondary, paddingHorizontal: SPACING.base, marginBottom: SPACING.sm },
-  empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: SPACING['2xl'] },
-  emptyTitle: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.lg, color: COLORS.textSecondary, marginTop: SPACING.md },
-  emptySubtitle: { fontFamily: TYPOGRAPHY.fontFamily.regular, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.textMuted, textAlign: 'center', marginTop: SPACING.xs },
-  retryBtn: { marginTop: SPACING.lg, paddingHorizontal: SPACING.xl, paddingVertical: SPACING.sm, borderRadius: RADIUS.md, backgroundColor: COLORS.primary + '20', borderWidth: 1, borderColor: COLORS.primary + '50' },
-  retryBtnText: { fontFamily: TYPOGRAPHY.fontFamily.semiBold, fontSize: TYPOGRAPHY.sizes.sm, color: COLORS.primary },
-  fab: { position: 'absolute', bottom: 90, right: SPACING.base, borderRadius: RADIUS.full, overflow: 'hidden' },
-  fabGradient: { width: 60, height: 60, alignItems: 'center', justifyContent: 'center' },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.background,
+  },
+  listContent: {
+    paddingBottom: 110, // Ruang untuk dock floating tab bar
+  },
+  headerContainer: {
+    paddingTop: 54,
+  },
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.base,
+    marginBottom: SPACING.base,
+  },
+  userProfileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.md,
+  },
+  avatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surfaceElevated,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarLetter: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 18,
+    color: COLORS.primaryDark,
+  },
+  userTexts: {
+    justifyContent: 'center',
+  },
+  greetingSubtext: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  greetingName: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 17,
+    color: COLORS.textPrimary,
+  },
+  notifBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 11,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.primary,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: SPACING.base,
+    gap: SPACING.sm,
+    marginBottom: SPACING.base,
+  },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.surface,
+    borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACING.md,
+    height: 48,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: SPACING.sm,
+    ...SHADOWS.sm,
+  },
+  searchInput: {
+    flex: 1,
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+  },
+  filterBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.lg,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.base,
+    marginBottom: SPACING.lg,
+  },
+  actionItem: {
+    alignItems: 'center',
+    width: 62,
+    gap: 6,
+  },
+  actionIconBox: {
+    width: 52,
+    height: 52,
+    borderRadius: RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...SHADOWS.sm,
+  },
+  actionIconDark: {
+    backgroundColor: '#18181B',
+  },
+  actionIconWhite: {
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  actionLabel: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: 11,
+    color: COLORS.textPrimary,
+    textAlign: 'center',
+  },
+  calloutBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#18181B',
+    marginHorizontal: SPACING.base,
+    borderRadius: 20,
+    padding: SPACING.base,
+    marginBottom: SPACING.lg,
+    ...SHADOWS.md,
+  },
+  calloutTextCol: {
+    flex: 1,
+    paddingRight: SPACING.md,
+  },
+  calloutBadgePill: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#27272A',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: RADIUS.full,
+    marginBottom: 6,
+  },
+  calloutBadgePillText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: 10,
+    color: COLORS.primary,
+  },
+  calloutTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 15,
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  calloutDesc: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 11,
+    color: '#A1A1AA',
+    lineHeight: 16,
+  },
+  calloutIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: SPACING.base,
+    marginBottom: SPACING.md,
+  },
+  sectionTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 17,
+    color: COLORS.textPrimary,
+  },
+  seeAllText: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: 12,
+    color: COLORS.primaryDark,
+  },
+  nearbyScroll: {
+    paddingHorizontal: SPACING.base,
+    gap: SPACING.md,
+    paddingBottom: SPACING.base,
+  },
+  nearbyCard: {
+    width: 175,
+    backgroundColor: COLORS.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    ...SHADOWS.sm,
+  },
+  nearbyImage: {
+    width: '100%',
+    height: 110,
+    backgroundColor: COLORS.surfaceElevated,
+  },
+  nearbyImageFallback: {
+    width: '100%',
+    height: 110,
+    backgroundColor: COLORS.surfaceElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nearbyContent: {
+    padding: SPACING.sm + 2,
+    gap: 4,
+  },
+  nearbyTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: 13,
+    color: COLORS.textPrimary,
+  },
+  nearbyLocRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  nearbyLocText: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: 11,
+    color: COLORS.textMuted,
+    flex: 1,
+  },
+  categoryScroll: {
+    paddingHorizontal: SPACING.base,
+    gap: SPACING.sm,
+    paddingBottom: SPACING.base,
+  },
+  catPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    borderRadius: RADIUS.full,
+    backgroundColor: COLORS.surface,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...SHADOWS.sm,
+  },
+  catPillActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  catPillText: {
+    fontFamily: TYPOGRAPHY.fontFamily.medium,
+    fontSize: 12,
+    color: COLORS.textSecondary,
+  },
+  catPillTextActive: {
+    color: '#18181B',
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+  },
+  feedHeaderRow: {
+    paddingHorizontal: SPACING.base,
+    marginBottom: SPACING.sm,
+    marginTop: SPACING.xs,
+  },
+  feedTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.bold,
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  empty: {
+    alignItems: 'center',
+    paddingTop: 50,
+    paddingHorizontal: SPACING['2xl'],
+  },
+  emptyTitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.md,
+    color: COLORS.textSecondary,
+    marginTop: SPACING.md,
+  },
+  emptySubtitle: {
+    fontFamily: TYPOGRAPHY.fontFamily.regular,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: COLORS.textMuted,
+    textAlign: 'center',
+    marginTop: SPACING.xs,
+  },
+  retryBtn: {
+    marginTop: SPACING.md,
+    paddingHorizontal: SPACING.xl,
+    paddingVertical: 8,
+    borderRadius: RADIUS.md,
+    backgroundColor: COLORS.primary,
+  },
+  retryBtnText: {
+    fontFamily: TYPOGRAPHY.fontFamily.semiBold,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    color: '#18181B',
+  },
 });

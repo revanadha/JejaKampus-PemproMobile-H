@@ -106,7 +106,7 @@ export default function ChatScreen({ route, navigation }) {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <LinearGradient colors={['#0D1F35', COLORS.background]} style={styles.header}>
+      <LinearGradient colors={[COLORS.headerBackground, COLORS.background]} style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={22} color={COLORS.textPrimary} />
         </TouchableOpacity>
